@@ -32,9 +32,24 @@ gcm (size_t a, size_t b)
   return a;
 }
 
+// If we can use %.
+int
+gcd (int a, int b)
+{
+  while (b != 0)
+    {
+      a = a % b;
+      std::swap (a, b);
+    }
+  return a;
+}
+
 int
 main ()
 {
   if (gcm (45, 6) != 3)
+    __builtin_abort ();
+
+  if (gcd (45, 6) != 3)
     __builtin_abort ();
 }

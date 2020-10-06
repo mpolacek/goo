@@ -11,12 +11,10 @@ return build_new_method_call (object, member, ...);
 result = build_new_method_call (object, fn, args, ...);
 ```
 - if FN is a concept check, call `build_concept_check`
-- when we have a functor, FN will be a VAR_DECL, use
+- when we have a functor, FN will be a VAR_DECL; use this to call `operator ()`:
 ```c++
 result = build_op_call (fn, args, complain);
 ```
-
-   to call `operator ()`.
 
 - **TODO**
 

@@ -15,7 +15,8 @@ result = build_new_method_call (object, fn, args, ...);
 ```c++
 result = build_op_call (fn, args, complain);
 ```
-to call `operator ()`.
+
+   to call `operator ()`.
 
 - **TODO**
 

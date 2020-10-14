@@ -44,8 +44,12 @@ struct
 }
 ```
 
+### `TYPE_PTRDATAMEM_P`
+- is just `OFFSET_TYPE`
+- null pointer-to-data-member represented by -1: cf. `null_member_pointer_value_p` and `cp_convert_to_pointer`
+
 ### `cp_printer` specs
-```c++
+```
    %A   function argument-list.
    %C   tree code.
    %D   declaration.

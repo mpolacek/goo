@@ -44,6 +44,27 @@ struct
 }
 ```
 
+### `cp_printer` specs
+```c++
+   %A   function argument-list.
+   %C   tree code.
+   %D   declaration.
+   %E   expression.
+   %F   function declaration.
+   %G   gcall *
+   %H   type difference (from).
+   %I   type difference (to).
+   %K   tree
+   %L   language as used in extern "lang".
+   %O   binary operator.
+   %P   function parameter whose position is indicated by an integer.
+   %Q   assignment operator.
+   %S   substitution (template + args)
+   %T   type.
+   %V   cv-qualifier.
+   %X   exception-specification.
+```
+
 ## Debuginfo
 GCC 11 emits debuginfo for external functions too (*early debug* because of LTO).  This was introduced in [PR96383](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96383), which has unresolved issues: [PR97060](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=97060).
 E.g.:

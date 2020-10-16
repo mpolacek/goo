@@ -27,7 +27,7 @@ Here we have
 
  `args = [1, "hi"]`
 
-`tparms = <T, U>` (a vector of `TYPE_DECL`s, their types are `TEMPLATE_TYPE_PARM`s)
+`tparms = <T, U>` (a vector of `TYPE_DECL`s, their types are `TEMPLATE_TYPE_PARM`s, this is what we need to deduce)
 
 `targs = <,>` (nothing deduced so far)
 
@@ -66,7 +66,7 @@ void g () {
 
 `args = [42]`
 
-`tparms = <auto>` (a `TYPE_DECL` with type `template_type_parm auto`)
+`tparms = <auto>` (a `TYPE_DECL` with type `template_type_parm auto`, this is what we need to deduce)
 
 `targs = <>`
 

@@ -34,6 +34,20 @@ result = build_op_call (fn, args, complain);
 
 `(gdb) p pp.buffer.formatted_obstack`
 
+### `resolve_nondeduced_context`
+
+- given a function template:
+```c++
+template<typename T>
+void foo () { }
+```
+
+and `&foo<int>` in the code, `resolve_nondeduced_context` resolves
+`&TEMPLATE_ID_EXPR <foo, int>` (type `unknown type`) to `foo` (`ADDR_EXPR` of type `void (*<T358>) (void)`).
+
+- it instantiates `foo` if there are no dependent template arguments
+- see [DR 115](https://wg21.link/cwg115)
+
 ### `TYPE_PTRMEMFUNC_P`
 
 ```c++

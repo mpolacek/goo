@@ -153,6 +153,25 @@ struct
    %X   exception-specification.
 ```
 
+## Built-ins
+
+### __builtin_addressof
+
+- used to implement `std::addressof`
+- like `&` but works even when the type has an overloaded operator `&` (smart pointers):
+```c++
+struct S { int operator&() { return 42; } };
+
+int main ()
+{
+  S s;
+  auto p = &s; // invokes operator&
+  __builtin_printf ("%d\n", p); // prints 42
+  auto q = __builtin_addressof (s);
+  __builtin_printf ("%p\n", q); // prints the addr
+}
+```
+
 ## Debuginfo
 GCC 11 emits debuginfo for external functions too (*early debug* because of LTO).  This was introduced in [PR96383](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96383), which has unresolved issues: [PR97060](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=97060).
 E.g.:

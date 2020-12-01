@@ -3,6 +3,8 @@
 ## Links
 
 - [Itanium C++ ABI](http://itanium-cxx-abi.github.io/cxx-abi/)
+- [C++ PRs](https://gcc.gnu.org/bugzilla/buglist.cgi?component=c%2B%2B&limit=0&list_id=285895&order=bug_id%20DESC&product=gcc&query_format=advanced&resolution=---)
+- [gcc git](https://gcc.gnu.org/git/?p=gcc.git;a=summary)
 
 ## C++ front end
 
@@ -74,6 +76,30 @@ void g () {
   - both `parm` and 0-th tparm have level 2, because `make_auto_1`: *use a TEMPLATE_TYPE_PARM with a level one deeper than the actual template parms*
   - `parm` has index 0
   - `targs[0] = arg`, so `targs = <int>`
+
+
+### Bit-fields
+- `TREE_TYPE` is the magic bit-field integral type; the lowered type
+- `unlowered_expr_type` is the declared type of the bitfield (uses `DECL_BIT_FIELD_TYPE`)
+- related PRs: [PR82165](https://gcc.gnu.org/PR82165), [PR92859](https://gcc.gnu.org/PR92859), [PR87547](https://gcc.gnu.org/PR87547), [PR78908](https://gcc.gnu.org/PR78908), [PR30328](https://gcc.gnu.org/PR30328), [PR65556](https://gcc.gnu.org/PR65556), [PR98043](https://gcc.gnu.org/PR98043)
+- e.g.:
+
+```c++
+struct S { signed int a:17; } x;
+// TREE_TYPE (x.a) = <unnamed-signed:17>
+// unlowered_expr_type (x.a) = int
+enum E { e0, e1, e2 };
+struct R { E a : 2; } y;
+// TREE_TYPE (y.a) = <unnamed-unsigned:2>
+// unlowered_expr_type (y.a) = E
+enum class B { A };
+struct C { B c : 8; } z;
+// TREE_TYPE (z.c) = signed char
+// unlowered_expr_type (z.c) = B
+```
+
+- integral promotions: [[conv.prom]](http://eel.is/c++draft/conv.prom)
+- unnamed bit-fields are not members
 
 ### `finish_call_expr`
 
@@ -173,7 +199,7 @@ int main ()
 ```
 
 ## Debuginfo
-GCC 11 emits debuginfo for external functions too (*early debug* because of LTO).  This was introduced in [PR96383](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96383), which has unresolved issues: [PR97060](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=97060).
+GCC 11 emits debuginfo for external functions too (*early debug* because of LTO).  This was introduced in [PR96383](https://gcc.gnu.org/PR96383), which had unresolved issues: [PR97060](https://gcc.gnu.org/PR97060) (fixed now).
 E.g.:
 ```c++
 extern void f();  // generates .string "_Z1fv"

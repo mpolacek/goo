@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstddef>
 #include <utility>
 
@@ -44,6 +45,59 @@ gcd (int a, int b)
   return a;
 }
 
+// Using the Stein algorithm.
+
+#define BinaryInteger typename
+
+template<BinaryInteger N>
+bool even (N n)
+{
+  return !(n & 1);
+}
+
+template<BinaryInteger N>
+N stein_gcd (N m, N n)
+{
+  if (m < N(0))
+    m = -m;
+  if (n < N(0))
+    n = -n;
+  if (m == N(0))
+    return n;
+  if (n == N(0))
+    return m;
+
+  int d_m = 0;
+  while (even (m))
+    {
+      m >>= 1;
+      ++d_m;
+    }
+
+  int d_n = 0;
+  while (even (n))
+    {
+      n >>= 1;
+      ++d_n;
+    }
+
+  // odd (m) && odd (n)
+
+  while (m != n)
+    {
+      if (n > m)
+	std::swap (n, m);
+      m -= n;
+      do
+	m >>= 1;
+      while (even (m));
+    }
+
+  // m == n
+
+  return m << std::min (d_m, d_n);
+}
+
 int
 main ()
 {
@@ -51,5 +105,10 @@ main ()
     __builtin_abort ();
 
   if (gcd (45, 6) != 3)
+    __builtin_abort ();
+
+  if (stein_gcd (45, 6) != 3)
+    __builtin_abort ();
+  if (stein_gcd (196, 42) != 14)
     __builtin_abort ();
 }

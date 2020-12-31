@@ -287,6 +287,28 @@ find_first_n_carmichaels (int n)
   __builtin_printf ("\n");
 }
 
+/* Return true if N is probably prime, and false if it definitely
+   is not.  Uses the Miller-Rabin test.  */
+
+template<std::integral I>
+bool miller_rabin_test (I n, I q, I k, I w)
+{
+  /* Assume n > 1 && n - 1 = 2^k * q && odd (q) */
+  modulo_multiply<I> mmult (n);
+  I x = power_semigroup (w, q, mmult);
+  if (x == 1 || x == n - 1)
+    return true;
+  for (I i = 1; i < k; ++i)
+    {
+      x = mmult (x, x);
+      if (x == n - 1)
+	return true;
+      if (x == 1)
+	return false;
+    }
+  return false;
+}
+
 int
 main ()
 {
@@ -315,4 +337,7 @@ main ()
   assert (is_carmichael (1105));
 
   find_first_n_carmichaels (7);
+
+  assert (!miller_rabin_test (2793, 349, 3, 150));
+  assert (!miller_rabin_test (561, 35, 4, 7));
 }

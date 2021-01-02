@@ -75,8 +75,7 @@ miller_rabin (I q, I k, I n)
    is not.  Uses the Miller-Rabin test.  */
 
 template<std::integral I>
-static bool
-prime_p (I n)
+bool prime_p (I n)
 {
   if (n == 2 || n == 3)
     return true;

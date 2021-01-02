@@ -96,6 +96,7 @@ bool prime_p (I n)
   return true;
 }
 
+#if 0
 int
 main ()
 {
@@ -106,3 +107,4 @@ main ()
       __builtin_printf ("%d ", i);
   __builtin_printf ("\n");
 }
+#endif

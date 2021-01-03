@@ -8,6 +8,7 @@
 #include <concepts>
 #include <cstdlib>
 #include <ctime>
+#include <numeric>
 
 /* Returns true iff N is odd.  */
 
@@ -96,6 +97,14 @@ bool prime_p (I n)
       return false;
 
   return true;
+}
+
+/* True iff A and B are coprimes.  */
+
+template<std::integral I>
+bool coprime_p (I a, I b)
+{
+  return std::gcd (a, b) == 1;
 }
 
 #if 0

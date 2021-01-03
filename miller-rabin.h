@@ -1,5 +1,9 @@
 // Miller-Rabin primality test.
-// Use -std=c++20.
+
+#ifndef _GOO_MILLER_RABIN_H
+#define _GOO_MILLER_RABIN_H 1
+
+#if __cplusplus > 201703L && __cpp_concepts >= 201907L
 
 #include <concepts>
 #include <cstdlib>
@@ -60,7 +64,7 @@ miller_rabin (I q, I k, I n)
 
   for (I i = 1; i < k; ++i)
     {
-      x = modular_pow (x, 2, n);
+      x = modular_pow (x, I(2), n);
       if (x == n - 1)
 	return true;
       if (x == 1)
@@ -108,3 +112,7 @@ main ()
   __builtin_printf ("\n");
 }
 #endif
+
+#endif // C++2a
+
+#endif // _GOO_MILLER_RABIN_H

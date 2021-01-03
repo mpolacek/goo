@@ -20,8 +20,7 @@ bool odd (I n)
 /* Returns true iff N is even.  */
 
 template<std::integral I>
-static inline bool
-even (I n)
+bool even (I n)
 {
   return !(n & 1);
 }
@@ -50,8 +49,7 @@ I modular_pow (I b, I e, I m)
 /* The Miller-Rabin test.  */
 
 template<std::integral I>
-static bool
-miller_rabin (I q, I k, I n)
+bool miller_rabin (I q, I k, I n)
 {
   /* Pick a random integer W in the range [2, n - 2].  */
   I w = 2 + std::rand () % (n - 4);

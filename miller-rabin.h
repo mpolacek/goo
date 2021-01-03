@@ -113,6 +113,6 @@ main ()
 }
 #endif
 
-#endif // C++2a
+#endif // C++20
 
 #endif // _GOO_MILLER_RABIN_H

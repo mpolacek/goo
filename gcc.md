@@ -144,6 +144,10 @@ and `&foo<int>` in the code, `resolve_nondeduced_context` resolves
 - it instantiates `foo` if there are no dependent template arguments
 - see [DR 115](https://wg21.link/cwg115)
 
+### `TYPE_USER_ALIGN`
+- `finalize_type_size` can (un)set it
+- a related [ABI issue](https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=8475f2902a2e2ca5f7ace8bc5265bd1a815dda20)
+
 ### `TYPE_PTRMEMFUNC_P`
 
 ```c++

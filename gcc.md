@@ -212,3 +212,11 @@ int main() {
 }
 ```
 
+## Executable stack
+On Linux GCC emits `.note.GNU-stack` sections to mark the code as not needing executable stack; if that section is missing, it's unknown and code linking in such `.o` objects can then make the program require executable stack.  Assembly files need to be marked manually -- e.g. various *.S files in libgcc:
+```c++
+#if defined(__ELF__) && defined(__linux__)
+    .section .note.GNU-stack,"",@progbits
+	.previous
+#endif
+```

@@ -122,6 +122,18 @@ result = build_op_call (fn, args, complain);
 
 - present in GCC 2.95, in which it only called `build_x_function_call` 
 
+### `VEC_INIT_EXPR`
+- already in GCC 2.95, used in `build_new_1`
+- represents initialization of an array from another array
+- if it represents *value-initialization*, `VEC_INIT_EXPR_VALUE_INIT` will be set
+- if it's a potential constant expression, `VEC_INIT_EXPR_IS_CONSTEXPR` will be set
+- built by `build_vec_init_expr`.  Used to build a `TARGET_EXPR` too, but not anymore
+- `build_vec_init_elt` builds up a single element intialization
+- used in `perform_member_init` when initializing an array (see [r165976](https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=534ecb17516c5db7a96245ebb90beb206e22eaff))
+- used in a defaulted constructor for a class with a non-static data member of array type
+- used in `build_array_copy` when creating a closure object for a lambda
+- `VEC_INIT_EXPR` is handled in `cp_gimplify_expr` since [r152318](https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=d5f4edddeb609ad93c7a69ad4575b082de8dc707) -- it uses `build_vec_init` to expand it
+- doesn't track whether the initialization was direct-init? [PR82235](https://gcc.gnu.org/PR82235)
 
 ### `[with ...]`
 - printed by `pp_cxx_parameter_mapping` or `dump_substitution`

@@ -195,6 +195,44 @@ struct
    %X   exception-specification.
 ```
 
+## GCC general
+### Reading source files
+- after processing the command-line options, we call `cpp_read_main_file` -> `_cpp_find_file` -> `find_file_in_dir` -> `open_file` which does:
+```c++
+file->fd = open (file->path, O_RDONLY | O_NOCTTY | O_BINARY, 0666);
+```
+- the source file is read in `read_file` -> `read_file_guts`:
+```c++
+while ((count = read (file->fd, buf + total, size - total)) > 0)
+  {
+    // ...
+  }
+```
+- the input buffer is then converted in `_cpp_convert_input` from the input charset to the source character set, if needed.  This can be done using `iconv`.
+- then close the file descriptor after reading: `close (file->fd);`
+- the buffer is kept in `_cpp_file::buffer`
+- this is used for default includes like `stdc-predef.h`, see `cpp_push_default_include`
+- then we can actually compile the file: `c_common_parse_file` -> `c_parse_file`
+
+### Reading tokens
+- in C++: `cp_lexer_new_main` reads all tokens using `cp_lexer_get_preprocessor_token`:
+```c++
+  /* Get the remaining tokens from the preprocessor.  */
+  while (tok->type != CPP_EOF)
+    {
+      if (filter)
+        /* Process the previous token.  */
+        module_token_lang (tok->type, tok->keyword, tok->u.value,
+                           tok->location, filter);
+      tok = vec_safe_push (lexer->buffer, cp_token ());
+      cp_lexer_get_preprocessor_token (C_LEX_STRING_NO_JOIN, tok); 
+    }
+```
+- `cp_lexer_get_preprocessor_token` uses `c_lex_with_flags` -> `cpp_get_token_with_location`
+- then we have the tokens saved in `lexer->buffer`: `vec<cp_token, va_gc> *buffer;`
+- peek next token: `cp_lexer_peek_token`
+- return the next token an consume it: `cp_lexer_consume_token`
+
 ## Built-ins
 
 ### __builtin_addressof

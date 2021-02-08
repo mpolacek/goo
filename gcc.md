@@ -7,6 +7,93 @@
 - [gcc git](https://gcc.gnu.org/git/?p=gcc.git;a=summary)
 
 ## C++ front end
+### Templates
+#### `tf_partial`
+
+- when doing initial explicit argument substitution in fn_type_unification.  E.g.,
+```c++
+template<typename T, typename U>
+T fn (T t, U u)
+{
+  return t + u;
+}
+
+void g ()
+{
+  fn<int>(1, 1);
+}
+```
+in `fn_type_unification`: we provided the first template argument:
+
+`explicit_targs` = `<int>`
+
+`fntype` = `T <T36d> (T, U)`
+
+and `tf_partial` is used:
+```c++
+/* Adjust any explicit template arguments before entering the
+   substitution context.  */
+explicit_targs
+  = (coerce_template_parms (tparms, explicit_targs, fn,
+                            complain|tf_partial,
+                            /*require_all_args=*/false,
+                            /*use_default_args=*/false));
+```
+and when substituting the explicit args into the function type.  See [temp.deduct.general]/2: *When an explicit template argument list is specified ... the specified template argument values are substituted for the corresponding template parameters.*
+```c++
+tsubst_flags_t ecomplain = complain | tf_partial | tf_fndecl_type;
+fntype = tsubst (TREE_TYPE (fn), explicit_targs, ecomplain, NULL_TREE);
+```
+so now `fntype` is `int <T36e> (int, U)`.  [temp.deduct.general]/5: *The resulting substituted and adjusted function type is used as the type of the function template for template argument deduction.* To deduce `U`:
+
+```c++
+  // full_targs = int,
+  // parms = int, U, void
+  // args = 1
+  // DECL_INNERMOST_TEMPLATE_PARMS (fn) = T, U
+  ok = !type_unification_real (DECL_INNERMOST_TEMPLATE_PARMS (fn),
+                               full_targs, parms, args, nargs, /*subr=*/0,
+                               strict, &checks, explain_p);
+  // full_targs = targs = int, int
+```
+Also: *When all template arguments have been deduced or obtained from default template arguments, all uses of template parameters in the template parameter list of the template are replaced with the corresponding deduced or default argument values.*
+
+and
+
+*If type deduction has not yet failed, then all uses of template parameters in the function type are replaced with the corresponding deduced or default argument values.*
+
+[temp.deduct.general]/6: *At certain points in the template argument deduction process it is necessary to take a function type that makes use of template parameters and replace those template parameters with the corresponding template arguments.
+This is done at the beginning of template argument deduction when any explicitly specified template arguments are substituted into the function type, and again at the end of template argument deduction when any template arguments that were deduced or obtained from default arguments are substituted.*
+
+- now
+```c++
+// fn = template_decl fn
+// targs = int, int
+decl = instantiate_template (fn, targs, complain);
+// decl = function_decl fn
+// TREE_TYPE (decl) = int <T112> (int, int)
+
+// ...
+
+return r; // r == decl
+```
+
+#### `CLASSTYPE_USE_TEMPLATE`
+
+- if a tree is a specialization of a template.  This is for ordinary explicit specialization and partial specialization of a template class such as:
+
+```c++
+template <> class C<int>;
+```
+or
+```c++
+template <class T> class C<T*>;
+```
+
+- =  1 implicit instantiation: `CLASSTYPE_IMPLICIT_INSTANTIATION`
+- = 2 partial or explicit specialization: `CLASSTYPE_TEMPLATE_SPECIALIZATION`
+- = 3 explicit instantiation: `CLASSTYPE_EXPLICIT_INSTANTIATION`
+- 1 or 3: `CLASSTYPE_TEMPLATE_INSTANTIATION`
 
 ### Deducing template arguments from a function call
 

@@ -10,7 +10,7 @@
 ### Templates
 #### `tf_partial`
 
-- when doing initial explicit argument substitution in fn_type_unification.  E.g.,
+- when doing initial explicit argument substitution in `fn_type_unification`.  E.g.,
 ```c++
 template<typename T, typename U>
 T fn (T t, U u)

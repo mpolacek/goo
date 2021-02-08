@@ -252,6 +252,21 @@ int main ()
 }
 ```
 
+## Configure & make
+C++:
+
+- run the testsuite with garbage collection at every opportunity:
+`make check-g++-strict-gc`
+- run the testsuite in all standard conformance levels: `make check-c++-all`
+
+PDP-11: `--target=pdp11-aout`
+
+AARCH64: `--target=aarch64-linux-gnu target_alias=aarch64-linux-gnu`
+
+ARM: `--target=arm-none-eabi`
+
+PPC64LE: `--target=powerpc64le-unknown-linux-gnu`
+
 ## Debuginfo
 GCC 11 emits debuginfo for external functions too (*early debug* because of LTO).  This was introduced in [PR96383](https://gcc.gnu.org/PR96383), which had unresolved issues: [PR97060](https://gcc.gnu.org/PR97060) (fixed now).
 E.g.:

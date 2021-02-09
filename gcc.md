@@ -80,6 +80,18 @@ decl = instantiate_template (fn, targs, complain);
 return r; // r == decl
 ```
 
+#### `retrieve_specialization`
+- tries to find a specialization (either an instantiation or an explicit specialization) of a template with certain arguments
+- uses the `decl_specializations` and `type_specializations` hash tables (unless `optimize_specialization_lookup_p`)
+- can use `register_specialization` or `reregister_specialization` to add a specialization
+- e.g.,
+```c++
+gen_tmpl = most_general_template (tmpl);
+// gen_tmpl e.g. "template<class U> template<class V> struct B<U>::C"
+// args e.g. <int, V>
+spec = retrieve_specialization (gen_tmpl, argvec, hash);
+```
+
 #### `CLASSTYPE_USE_TEMPLATE`
 
 - if a tree is a specialization of a template.  This is for ordinary explicit specialization and partial specialization of a template class such as:

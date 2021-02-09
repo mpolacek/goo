@@ -65,6 +65,8 @@ and
 [temp.deduct.general]/6: *At certain points in the template argument deduction process it is necessary to take a function type that makes use of template parameters and replace those template parameters with the corresponding template arguments.
 This is done at the beginning of template argument deduction when any explicitly specified template arguments are substituted into the function type, and again at the end of template argument deduction when any template arguments that were deduced or obtained from default arguments are substituted.*
 
+- also note that *The equivalent substitution in exception specifications is done only when the noexcept-specifier is instantiated, at which point a program is ill-formed if the substitution results in an invalid type or expression*.
+
 - now
 ```c++
 // fn = template_decl fn
@@ -94,6 +96,7 @@ template <class T> class C<T*>;
 - = 2 partial or explicit specialization: `CLASSTYPE_TEMPLATE_SPECIALIZATION`
 - = 3 explicit instantiation: `CLASSTYPE_EXPLICIT_INSTANTIATION`
 - 1 or 3: `CLASSTYPE_TEMPLATE_INSTANTIATION`
+- in debug output: `use_template=[01]`
 
 ### Deducing template arguments from a function call
 

@@ -109,6 +109,7 @@ template <class T> class C<T*>;
 - = 3 explicit instantiation: `CLASSTYPE_EXPLICIT_INSTANTIATION`
 - 1 or 3: `CLASSTYPE_TEMPLATE_INSTANTIATION`
 - in debug output: `use_template=[01]`
+- `lookup_template_class` sets CLASSTYPE_IMPLICIT_INSTANTIATION for a partial instantiation (i.e., for the type of a member template class nested within a template class); required for `maybe_process_partial_specialization` to work correctly.
 
 ### Deducing template arguments from a function call
 

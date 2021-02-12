@@ -8,6 +8,18 @@
 
 ## C++ front end
 ### Templates
+#### non-deduced contexts
+- see [temp.deduct.type], e.g., *the expression of a decltype-specifier*
+- in `unify`:
+```c++
+    case TYPEOF_TYPE:
+    case DECLTYPE_TYPE:
+    case UNDERLYING_TYPE:
+      /* Cannot deduce anything from TYPEOF_TYPE, DECLTYPE_TYPE,
+         or UNDERLYING_TYPE nodes.  */
+      return unify_success (explain_p);
+```
+
 #### `tf_partial`
 
 - when doing initial explicit argument substitution in `fn_type_unification`.  E.g.,

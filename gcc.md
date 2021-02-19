@@ -5,11 +5,66 @@
 - [Itanium C++ ABI](http://itanium-cxx-abi.github.io/cxx-abi/)
 - [C++ PRs](https://gcc.gnu.org/bugzilla/buglist.cgi?component=c%2B%2B&limit=0&list_id=285895&order=bug_id%20DESC&product=gcc&query_format=advanced&resolution=---)
 - [gcc git](https://gcc.gnu.org/git/?p=gcc.git;a=summary)
+- [safe bool problem](https://en.cppreference.com/w/cpp/language/implicit_conversion)
 
 ## C++ front end
+### Constant expressions
+constant expression
+: either a glvalue core constant expression that refers to an entity that is a permitted result of a constant expression, or a prvalue core constant expression whose value satisfies the following constraints: *[expr.const]p11*
+
+core constant expression
+: an expression E whose evaluation does not evaluate one of the following: see *[expr.const]p5*
+
+converted constant expression
+: an expression, implicitly converted to type T, where the converted expression is a constant expression and the implicit conversion sequence contains only *[expr.const]p10*
+
+contextually converted constant expression of type `bool`
+: an expression, contextually converted to `bool`, where the converted expression is a constant expression and the conversion sequence contains only the conversions above (*[expr.const]p10*)
+
+manifestly constant-evaluated expression
+: see *[expr.const]p14*
+
+potentially constant evaluated expression
+: see *[expr.const]p15*
+
+- `*_constant_init`: `strict` is false (we try to get constant values for more than just C++ constant expressions)
+- `*_constant_value`: `strict` is true
+- `build_date_member_initialization` --- DM initialization in constexpr constructor; builds up a pairing of the data member with its initializer
+- `__builtin_is_constant_evaluated` --- [P0595](https://wg21.link/p0595)
+
+### Parser
+Life begins in `c_parse_file`:
+
+- create a new main C++ lexer and new C++ parser
+- call `cp_parser_translation_unit`
+- call `finish_translation_unit`
+
+`cp_parser_translation_unit`:
+
+- handle *[gram.basic]*
+- call `cp_parser_toplevel_declaration` until EOF
+
 ### Templates
+
+`TEMPLATE_DECL` ~ represents a template definition
+
+| accessor | |
+| - | - |
+| `DECL_ARGUMENTS` | template parameter vector |
+| `DECL_TEMPLATE_INFO` | template info |
+| `DECL_VINDEX` | list of instantiations (functions only) |
+
+| class templates | |
+| - | - |
+| `DECL_INITIAL` | associated templates |
+
+| non-class templates | |
+| - | - |
+| `TREE_TYPE` | type of object to be constructed |
+| `DECL_TEMPLATE_RESULT` | decl for object to be created (e.g., the `FUNCTION_DECL` |
+
 #### non-deduced contexts
-- see [temp.deduct.type], e.g., *the expression of a decltype-specifier*
+- see *[temp.deduct.type]*, e.g., *the expression of a decltype-specifier*
 - in `unify`:
 ```c++
     case TYPEOF_TYPE:
@@ -123,7 +178,7 @@ template <class T> class C<T*>;
 - in debug output: `use_template=[01]`
 - `lookup_template_class` sets `CLASSTYPE_IMPLICIT_INSTANTIATION` for a partial instantiation (i.e., for the type of a member template class nested within a template class); required for `maybe_process_partial_specialization` to work correctly.
 
-### Deducing template arguments from a function call
+#### Deducing template arguments from a function call
 
 - `[temp.deduct.call]`
 - consider:
@@ -192,6 +247,13 @@ void g () {
   - `parm` has index 0
   - `targs[0] = arg`, so `targs = <int>`
 
+#### Other
+
+- `add_template_candidate_real` --- if `TMPL` can be successfully instantiated by the given template arguments and the argument list, add it to the candidates; see [temp.over]
+- template-id aren't reparsed: if `cp_parser_template_id` sees `CPP_TEMPLATE_ID`, it uses `saved_checks_value`
+- `lookup_template_function` --- returns a `TEMPLATE_ID_EXPR` corresponding to the function + arguments
+  - if it's `BASELINK_P`, create a `TEMPLATE_ID_EXPR` into its `BASELINK_FUNCTIONS`
+  - if it has no type/is `OVERLOAD`: use `unknown_type_node`
 
 ### Bit-fields
 - `TREE_TYPE` is the magic bit-field integral type; the lowered type
@@ -310,6 +372,55 @@ struct
    %X   exception-specification.
 ```
 
+### Alias
+1. *type alias*
+
+ - like `typedef`
+```
+alias-declaration:
+  using identifier attribute-specifier-seq [opt] = defining-type-id ;
+```
+2. *alias template*
+
+- a *template-declaration in which the declaration is an alias-declaration*
+- refers to a family of types
+- [temp.alias]
+
+### Random G++ stuff
+- `grok_op_properties` --- checks a declaration of an overloaded or conversion operator
+- `grok_ctor_properties` --- checks if a constructor has the correct form
+- `grok_reference_init` --- handles initialization of references
+- `AGGR_INIT_EXPR` --- useful where we want to defer actually building up the code to manipulate the object until we know which object it is we're dealing with
+- `simplify_aggr_init_expr` --- `AGGR_INIT_EXPR` --> `CALL_EXPR`
+- `defaultable_fn_check` --- if a function can be explicitly defaulted
+- `convert_nontype_argument` --- follows [temp.arg.nontype]
+- `do_class_deduction` --- C++17 class deduction
+- `do_auto_deduction` --- replace `auto` in the type with the type deduced from the initializer
+- `process_outer_var_ref` --- has the `odr_use` param, true if it's called from `mark_use`, complain about the use of constant variables; an ODR-use of an outer automatic variables causes an error
+- `REFERENCE_REF_P` --- an implicit `INDIRECT_EXPR` from `convert_to_reference`
+- `convert_from_reference` --- `x [type T&]` --> `*x [type T]`
+- `build_temp` --- can trigger overload resolution by way of `build_special_member_call` --> `build_new_method_call` --> `add_candidates`
+- `IDENTIFIER_BINDING` --- innermost `cxx_binding` for the identifier
+- `build_class_member_access_expr` --- builds `object.member`, where `object` is an expression, `member` is a declaration/baselink
+
+## C++ language
+
+- C++98 doesn't allow forming a reference to a reference; in C++11 it just collapses to a single reference; see [DR 106](https://wg21.link/cwg106)
+- *implicit move* --- [class.copy.elision]
+- destructors don't have names: [DR 2069](https://wg21.link/cwg2069)
+- pure virtual function API: only called if the user calls a non-overriden pure virtual function (~ UB); will terminate
+```c++
+extern "C" void __cxa_pure_virtual ();
+```
+- not all function declarations can be redeclared: [basic.scope.scope], [class.mem]p5
+
+
+## C++ library
+
+- [std::optional](https://en.cppreference.com/w/cpp/utility/optional): C++17, an optional contained valued
+- [std::variant](https://en.cppreference.com/w/cpp/utility/variant): C++17, a type-safe union, can use `std::monostate` (~ empty)
+- [std::piecewise_construct](https://en.cppreference.com/w/cpp/utility/piecewise_construct): used to disambiguate between different functions that take two tuple arguments
+
 ## GCC general
 ### Reading source files
 - after processing the command-line options, we call `cpp_read_main_file` -> `_cpp_find_file` -> `find_file_in_dir` -> `open_file` which does:
@@ -346,7 +457,12 @@ while ((count = read (file->fd, buf + total, size - total)) > 0)
 - `cp_lexer_get_preprocessor_token` uses `c_lex_with_flags` -> `cpp_get_token_with_location`
 - then we have the tokens saved in `lexer->buffer`: `vec<cp_token, va_gc> *buffer;`
 - peek next token: `cp_lexer_peek_token`
-- return the next token an consume it: `cp_lexer_consume_token`
+- return the next token and consume it: `cp_lexer_consume_token`
+- purge tokens: `cp_lexer_purge_tokens_after`, used in `cp_parser_check_for_invalid_template_id`
+
+### Random
+
+- GCC 8 ABI bugs: [87137](https://gcc.gnu.org/PR87137) + [86094](https://gcc.gnu.org/PR86094)
 
 ## Built-ins
 
@@ -373,6 +489,7 @@ C++:
 - run the testsuite with garbage collection at every opportunity:
 `make check-g++-strict-gc`
 - run the testsuite in all standard conformance levels: `make check-c++-all`
+- `-m32` testing: `RUNTESTFLAGS="--target_board=unix\{-m32,-m64\} dg.exp=foo.C"`
 
 PDP-11: `--target=pdp11-aout`
 

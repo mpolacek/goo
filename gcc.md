@@ -27,10 +27,19 @@ manifestly constant-evaluated expression
 potentially constant evaluated expression
 : see *[expr.const]p15*
 
+- we now use the pre-generic form for constexpr evaluation
+
+#### Other
+- `constexpr` is Turing-complete after [DR 1454](https://wg21.link/cwg1454) (reference parameters in constexpr functions)
 - `*_constant_init`: `strict` is false (we try to get constant values for more than just C++ constant expressions)
 - `*_constant_value`: `strict` is true
 - `build_date_member_initialization` --- DM initialization in constexpr constructor; builds up a pairing of the data member with its initializer
 - `__builtin_is_constant_evaluated` --- [P0595](https://wg21.link/p0595)
+- [P0859](https://wg21.link/p0859): a function is needed for constant evaluation if it is a `constexpr` function that is named by an expression that is potentially constant evaluated -> so we need to instantiate any `constexpr` functions mentioned by the expression:
+  - `instantiate_constexpr_fns` has `cp_walk_tree` with `instantiate_cx_fn_r`, checks `DECL_TEMPLOID_INSTANTIATION` and calls `instantiate_decl` for constexpr function decls
+- can't call `maybe_constant_value` on an unresolved overloaded function (like in [PR46903](https://gcc.gnu.org/PR46903))
+- N4268: Allow constant evaluation for all non-type template arguments
+- in a constexpr function, a parameter is potentially constant when evaluating a call to that function, but it is not constant during parsing of the function; see this [patch](https://gcc.gnu.org/pipermail/gcc-patches/2020-May/546260.html)
 
 ### Parser
 Life begins in `c_parse_file`:
@@ -43,6 +52,22 @@ Life begins in `c_parse_file`:
 
 - handle *[gram.basic]*
 - call `cp_parser_toplevel_declaration` until EOF
+
+- [ ] [PR64666](https://gcc.gnu.org/PR64666) - we accept an assignment in a constant-expression but we shouldn't; see `cp_parser_constant_expression`
+
+#### Delayed parsing
+[class.mem]p7: A *complete-class context* of a class is:
+
+- function body
+- default argument
+- default template argument
+- *noexcept-specifier*
+- default member initializer
+
+within the member-specification of the class or class template.
+
+And [class.mem]p8: *The class is regarded as complete within its complete-class contexts.*  So we defer parsing to handle this.  This is implemented via `cp_parser_late_parsing_for_member`, `cp_parser_late_parsing_nsdmi`, `cp_parser_late_noexcept_specifier`, etc.  And unparsed entity is represented by a `DEFERRED_PARSE`.
+
 
 ### Templates
 
@@ -63,6 +88,37 @@ Life begins in `c_parse_file`:
 | `TREE_TYPE` | type of object to be constructed |
 | `DECL_TEMPLATE_RESULT` | decl for object to be created (e.g., the `FUNCTION_DECL` |
 
+
+#### `tsubst`
+- deals with types, decls, ...
+- `DECL_P` -> `tsubst_decl`
+- for some things like `integer_type_node` or `NULLPTR_TYPE` just returns the tree
+- for `INTEGER_TYPE`: substitute `TYPE_MAX_VALUE`
+- handles e.g.: `TEMPLATE_TYPE_PARM`, `TREE_LIST`, `TREE_VEC`, `POINTER_TYPE`, `FUNCTION_TYPE`, `DECLTYPE_TYPE`
+
+#### `tsubst_copy`
+- does the substitution but doesn't finish the expression
+- also deals with `_DECL`
+
+#### `tsubst_expr`
+- like `tsubst_copy` for expressions, does semantic processing
+- `RETURN_EXPR`: calls `finish_return_stmt` after recursing on its operands
+- `EXPR_STMT`, `USING_STMT`, `DECL_EXPR`, `BIND_EXPR`, ...
+- calls `finish_*`
+
+#### `tsubst_copy_and_build`
+- deals with expressions and performs semantic analysis
+- `IDENTIFIER_NODE`: `finish_id_expression`
+- `TEMPLATE_ID_EXPR`
+  - `tsubst_template_args`, `lookup_template_function`
+  - builds a `COMPONENT_REF`
+- `INDIRECT_REF`: `tsubst` + `build_nop`
+- `IMPLICIT_CONV_EXPR`: `tsubst` + recurse on the operand + `perform_implicit_conversion`
+- handles various cast expressions
+- `++`, `--`, binary ops
+- `CALL_EXPR`: depends if it's ADL or not; `finish_call_expr`
+- `COND_EXPR`
+
 #### non-deduced contexts
 - see *[temp.deduct.type]*, e.g., *the expression of a decltype-specifier*
 - in `unify`:
@@ -74,6 +130,8 @@ Life begins in `c_parse_file`:
          or UNDERLYING_TYPE nodes.  */
       return unify_success (explain_p);
 ```
+
+- the operand of `decltype` is also an unevaluated operand -> NS class members might be named
 
 #### `tf_partial`
 
@@ -146,6 +204,8 @@ decl = instantiate_template (fn, targs, complain);
 
 return r; // r == decl
 ```
+
+- in [PR89966](https://gcc.gnu.org/PR89966) passing `tf_partial` prevented `do_auto_deduction` from actually replacing `auto`, so `do_auto_deduction` now clears `tf_partial`
 
 #### `retrieve_specialization`
 - tries to find a specialization (either an instantiation or an explicit specialization) of a template with certain arguments
@@ -247,6 +307,21 @@ void g () {
   - `parm` has index 0
   - `targs[0] = arg`, so `targs = <int>`
 
+#### Dependent names
+Some expressions are never dependent: [[temp.dep.expr]p4](http://eel.is/c++draft/temp.dep.expr#4): *literal*, `sizeof`, `typeid`, `noexcept(expr)`, `alignof`
+
+#### Injected class names
+```c++
+template<typename T>
+struct A {
+  void f() { T::template foo<A>(); }
+};
+```
+the template argument for `T::foo` might be a type or a template
+
+[DR 176](https://wg21.link/cwg176), makes it easier to refer to the current instantiation
+
+
 #### Other
 
 - `add_template_candidate_real` --- if `TMPL` can be successfully instantiated by the given template arguments and the argument list, add it to the candidates; see [temp.over]
@@ -254,6 +329,18 @@ void g () {
 - `lookup_template_function` --- returns a `TEMPLATE_ID_EXPR` corresponding to the function + arguments
   - if it's `BASELINK_P`, create a `TEMPLATE_ID_EXPR` into its `BASELINK_FUNCTIONS`
   - if it has no type/is `OVERLOAD`: use `unknown_type_node`
+- `pending_templates` --- a list of templates whose instantiations have been deferred
+  - `instantiate_pending_templates`, `add_pending_template`
+- `DECL_FUNCTION_TEMPLATE_P` -- if a `TEMPLATE_DECL` is a function template.  Functions templates cannot be partially specialized, checked in `check_explicit_specialization`
+- `current_template_args` -- within the declaration of a template, return the currently active template parameters; is a vector
+- `template_parm_scope_p` -- if this scope was created to store template parameters
+- `begin_specialization`-- after seeing `template<>`
+- [DR 737](https://wg21.link/cwg737): [temp.expl.spec]: *An explicit specialization may be declared in any scope in which the corresponding primary template may be defined.*  We don't implement it yet.
+  - `check_specialization_namespace`, `check_explicit_instantiation_namespace`, `check_explicit_specialization`
+- class templates: member functions are instantiated only if they are used
+- if a class template has static members, they are instantiated once for each type for which the class template is used
+- passing instantiated codes to `tsubst` -> crash; see e.g. `case FIX_TRUNC_EXPR` in `tsubst_copy_and_build`
+- deduction against `braced-init-list` wasn't supported until [DR 1591](https://wg21.link/cwg1591)
 
 ### Bit-fields
 - `TREE_TYPE` is the magic bit-field integral type; the lowered type
@@ -298,6 +385,27 @@ result = build_op_call (fn, args, complain);
 - **TODO**
 
 - present in GCC 2.95, in which it only called `build_x_function_call` 
+
+### `TARGET_EXPR`
+- `INIT_EXPR` with a `TARGET_EXPR` as the RHS = direct-init
+- `MODIFY_EXPR` with a `TARGET_EXPR` as the RHS = copy
+ - for classes but also when converting an integer to a reference type: `convert_like_internal/ck_ref_bind`
+- can express direct-init: `TARGET_EXPR_DIRECT_INIT`
+
+### `NON_DEPENDENT_EXPR`
+- introduced 2003-07-08, gcc-3.4.0, [r69130](https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=d17811fd1aad24d0f47d0b20679753b23803848b)
+- type-computation for non-dependent expressions
+- `build_non_dependent_expr`
+- a placeholder for an expression that is not type-dependent, but does occur in a template
+- the standard says that we have to compute the types of expressions in templates where possible:
+```c++
+struct A { template<int I> void f(); };
+struct B { int f; };
+A *g(int);
+B *g(double);
+template<typename T> void h() { g(2)->f<3>(); }
+```
+`f<int>` is a template.  We have to get the type of `g(2)` in order to parse the expr.
 
 ### `VEC_INIT_EXPR`
 - already in GCC 2.95, used in `build_new_1`
@@ -386,14 +494,15 @@ alias-declaration:
 - refers to a family of types
 - [temp.alias]
 
-### Random G++ stuff
+### Other
 - `grok_op_properties` --- checks a declaration of an overloaded or conversion operator
 - `grok_ctor_properties` --- checks if a constructor has the correct form
 - `grok_reference_init` --- handles initialization of references
+- `grok_special_member_properties` --- sets `TYPE_HAS_*` flags like `TYPE_HAS_USER_CONSTRUCTOR`
 - `AGGR_INIT_EXPR` --- useful where we want to defer actually building up the code to manipulate the object until we know which object it is we're dealing with
 - `simplify_aggr_init_expr` --- `AGGR_INIT_EXPR` --> `CALL_EXPR`
 - `defaultable_fn_check` --- if a function can be explicitly defaulted
-- `convert_nontype_argument` --- follows [temp.arg.nontype]
+- `convert_nontype_argument` --- follows [temp.arg.nontype]; called twice for each targ = double coercion (`finish_template_type` + `instantiate_template_class`)
 - `do_class_deduction` --- C++17 class deduction
 - `do_auto_deduction` --- replace `auto` in the type with the type deduced from the initializer
 - `process_outer_var_ref` --- has the `odr_use` param, true if it's called from `mark_use`, complain about the use of constant variables; an ODR-use of an outer automatic variables causes an error
@@ -402,17 +511,31 @@ alias-declaration:
 - `build_temp` --- can trigger overload resolution by way of `build_special_member_call` --> `build_new_method_call` --> `add_candidates`
 - `IDENTIFIER_BINDING` --- innermost `cxx_binding` for the identifier
 - `build_class_member_access_expr` --- builds `object.member`, where `object` is an expression, `member` is a declaration/baselink
+- `copy_node` doesn't copy language-specific parts, but `copy_decl` does
+- `build_non_dependent_expr` uses `if (flag_checking > 1 ...) { fold_non_dependent_expr ();` }
+- prefix/postfix `operator++()` distinguished by a hidden `int` argument, added in `build_new_op_1`:
+```c++
+if (code == POSTINCREMENT_EXPR || code == POSTDECREMENT_EXPR)
+    {
+      arg2 = integer_zero_node;
+      arg2_type = integer_type_node;
+    }
+```
+- `digest_init` -- `{1, 2}` -> `{.i = 1, .j = 2 }`
 
 ## C++ language
 
 - C++98 doesn't allow forming a reference to a reference; in C++11 it just collapses to a single reference; see [DR 106](https://wg21.link/cwg106)
 - *implicit move* --- [class.copy.elision]
-- destructors don't have names: [DR 2069](https://wg21.link/cwg2069)
+- destructors don't have names: [DR 2069](https://wg21.link/cwg2069); you name a dtor by `~type-name` where the `type-name` names the type
 - pure virtual function API: only called if the user calls a non-overriden pure virtual function (~ UB); will terminate
 ```c++
 extern "C" void __cxa_pure_virtual ();
 ```
 - not all function declarations can be redeclared: [basic.scope.scope], [class.mem]p5
+- *braced-init-list*s aren't expressions, so can't use `b ? {1,0} : {0,1}`
+- default argument ~ a separate definition: [temp.decls]
+- functions are not modifiable even though they are lvalues
 
 
 ## C++ library
@@ -463,6 +586,30 @@ while ((count = read (file->fd, buf + total, size - total)) > 0)
 ### Random
 
 - GCC 8 ABI bugs: [87137](https://gcc.gnu.org/PR87137) + [86094](https://gcc.gnu.org/PR86094)
+- gcc-1.42: `cccp.c`:
+```c
+/*
+ * the behavior of the #pragma directive is implementation defined.
+ * this implementation defines it as follows.
+ */
+do_pragma ()
+{
+  close (0);
+  if (open ("/dev/tty", O_RDONLY, 0666) != 0)
+    goto nope;
+  close (1);
+  if (open ("/dev/tty", O_WRONLY, 0666) != 1)
+    goto nope;
+  execl ("/usr/games/hack", "#pragma", 0);
+  execl ("/usr/games/rogue", "#pragma", 0);
+  execl ("/usr/new/emacs", "-f", "hanoi", "9", "-kill", 0);
+  execl ("/usr/local/emacs", "-f", "hanoi", "9", "-kill", 0);
+nope:
+  fatal ("You are in a maze of twisty compiler features, all different");
+}
+```
+- libgcc unwinder has a global lock: `_Unwind_Find_FDE` has `object_mutex`
+- `cp/g++spec.c` -- `lang_specific_driver`, adds `-lstdc++` using `generate_option`
 
 ## Built-ins
 
@@ -490,6 +637,7 @@ C++:
 `make check-g++-strict-gc`
 - run the testsuite in all standard conformance levels: `make check-c++-all`
 - `-m32` testing: `RUNTESTFLAGS="--target_board=unix\{-m32,-m64\} dg.exp=foo.C"`
+- `--enable-symvers=gnu-versioned-namespace`
 
 PDP-11: `--target=pdp11-aout`
 

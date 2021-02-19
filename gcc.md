@@ -238,6 +238,16 @@ template <class T> class C<T*>;
 - in debug output: `use_template=[01]`
 - `lookup_template_class` sets `CLASSTYPE_IMPLICIT_INSTANTIATION` for a partial instantiation (i.e., for the type of a member template class nested within a template class); required for `maybe_process_partial_specialization` to work correctly.
 
+#### `PRIMARY_TEMPLATE_P`
+- a variable in a function template will get a `TEMPLATE_DECL` (created by `start_decl` -> `push_template_decl` -> `build_template_decl`), its `DECL_TEMPLATE_RESULT` will be a `VAR_DECL`, so `variable_template_p` checks for `PRIMARY_TEMPLATE_P`:
+```c++
+template<typename> void f() {
+  extern int foo;
+  foo = 1; // gets a TEMPLATE_DECL, its DECL_PRIMARY_TEMPLATE
+           // is TEMPLATE_DECL f, so it's not PRIMARY_TEMPLATE_P
+}
+```
+
 #### Deducing template arguments from a function call
 
 - `[temp.deduct.call]`
@@ -321,6 +331,18 @@ the template argument for `T::foo` might be a type or a template
 
 [DR 176](https://wg21.link/cwg176), makes it easier to refer to the current instantiation
 
+#### `redeclare_class_template`
+- called for e.g.
+```c++
+template<class T> struct S;
+template<class T> struct S { };
+```
+to detect things like
+```c++
+template<class = int> class C;
+template<class = int> class C { }; // error: redefinition of default argument
+```
+though we don't do it for function templates -- bug!
 
 #### Other
 
@@ -341,6 +363,7 @@ the template argument for `T::foo` might be a type or a template
 - if a class template has static members, they are instantiated once for each type for which the class template is used
 - passing instantiated codes to `tsubst` -> crash; see e.g. `case FIX_TRUNC_EXPR` in `tsubst_copy_and_build`
 - deduction against `braced-init-list` wasn't supported until [DR 1591](https://wg21.link/cwg1591)
+- [DR 226](https://wg21.link/cwg226): allowed template default arguments of function templates (C++11)
 
 ### Bit-fields
 - `TREE_TYPE` is the magic bit-field integral type; the lowered type
@@ -385,6 +408,21 @@ result = build_op_call (fn, args, complain);
 - **TODO**
 
 - present in GCC 2.95, in which it only called `build_x_function_call` 
+
+### `build_over_call`
+- has the `CHECKING_P` check in C++17: we check to make sure that we are initializing directly from class prvalues rather than copying them:
+```c++
+/* In C++17 we shouldn't be copying a TARGET_EXPR except into a
+   potentially-overlapping subobject.  */
+if (CHECKING_P && cxx_dialect >= cxx17)
+    gcc_assert (TREE_CODE (arg) != TARGET_EXPR
+                || force_elide
+                /* It's from binding the ref parm to a packed field. */
+                || convs[0]->need_temporary_p
+                || seen_error ()
+                /* See unsafe_copy_elision_p.  */
+                || unsafe_return_slot_p (fa));
+```
 
 ### `TARGET_EXPR`
 - `INIT_EXPR` with a `TARGET_EXPR` as the RHS = direct-init
@@ -585,7 +623,8 @@ while ((count = read (file->fd, buf + total, size - total)) > 0)
 
 ### Random
 
-- GCC 8 ABI bugs: [87137](https://gcc.gnu.org/PR87137) + [86094](https://gcc.gnu.org/PR86094)
+- GCC 8 ABI bugs: [PR87137](https://gcc.gnu.org/PR87137) + [PR86094](https://gcc.gnu.org/PR86094)
+- GCC 9 ABI libstdc++ issue with nested `std::pair`: [PR87822](https://gcc.gnu.org/PR87822)
 - gcc-1.42: `cccp.c`:
 ```c
 /*

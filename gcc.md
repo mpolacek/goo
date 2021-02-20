@@ -9,6 +9,9 @@
 
 ## C++ front end
 ### Constant expressions
+
+Certain contexts require constant expressions.  Constant expressions can be evaluated during translation.
+
 constant expression
 : either a glvalue core constant expression that refers to an entity that is a permitted result of a constant expression, or a prvalue core constant expression whose value satisfies the following constraints: *[expr.const]p11*
 
@@ -27,7 +30,51 @@ manifestly constant-evaluated expression
 potentially constant evaluated expression
 : see *[expr.const]p15*
 
+- we require a *constant-expression* in e.g. these contexts:
+  - `case e`
+       - `finish_case_label` -> `case_conversion` -> `cxx_constant_value`
+  - `static_assert(e)`
+    - `finish_static_assert` -> `fold_non_dependent_expr`
+  - `arr[e]`
+    - `compute_array_index_type_loc` -> `fold_non_dependent_expr`
+  - `explicit(e)`
+    - `build_explicit_specifier` -> `cxx_constant_value`
+  - `noexcept(e)`
+    - `build_noexcept_spec` -> `cxx_constant_value`
+  - *enumerator* `= e`
+    - `build_enumerator` -> `cxx_constant_value`
+  - `alignas(e)`
+    - `cxx_alignas_expr` -> `cxx_constant_value`
+  - `btfld : e` (a *member-declaration*)
+    - `check_bitfield_decl` -> `cxx_constant_value`
+  - *template-argument*
+    - `convert_nontype_argument` -> `maybe_constant_value`
+- to evaluate a constant expression, we use functions like
+  - `maybe_constant_value`
+  - `cxx_constant_value`
+  - `maybe_constant_init`
+  - `cxx_constant_init`
+  - `fold_non_dependent_expr`
+  - `fold_non_dependent_init`
+- the core of constexpr evaluation is `cxx_eval_outermost_constant_expr` (more on it below)
+- as an aside, other fold functions in the C++ FE:
+  - `fold_simple`
+    - only few simplifications like `FLOAT_EXPR` -> `REAL_CST`, or fold `SIZEOF_EXPR`s
+    - can call middle-end `const_unop`
+  - `fold_for_warn`
+  - `cp_fully_fold`
+  - `cp_fully_fold_init`
+  - `cp_fold_function`
 - we now use the pre-generic form for constexpr evaluation
+
+#### `maybe_constant_value`
+- doesn't error on a non-constant expression; is `strict`
+- unlike the similar functions, uses a hash table to store evaluated expressions: `tree -> tree` mapping in `cv_cache`
+- if the expression to evaluate isn't already in the hash table, call `cxx_eval_outermost_constant_expr` to actually evaluate the expression
+
+#### `cxx_eval_outermost_constant_expr`
+- the central point to evaluate a constexpr
+- **TODO**
 
 #### Other
 - `constexpr` is Turing-complete after [DR 1454](https://wg21.link/cwg1454) (reference parameters in constexpr functions)

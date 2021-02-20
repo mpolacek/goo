@@ -30,7 +30,7 @@ manifestly constant-evaluated expression
 potentially constant evaluated expression
 : see *[expr.const]p15*
 
-- we require a *constant-expression* in e.g. these contexts:
+- we require a *constant-expression* in these contexts:
   - `case e`
        - `finish_case_label` -> `case_conversion` -> `cxx_constant_value`
   - `static_assert(e)`
@@ -56,7 +56,7 @@ potentially constant evaluated expression
   - `cxx_constant_init`
   - `fold_non_dependent_expr`
   - `fold_non_dependent_init`
-- the core of constexpr evaluation is `cxx_eval_outermost_constant_expr` (more on it below)
+- the core of constexpr evaluation is `cxx_eval_outermost_constant_expr` (more below)
 - as an aside, other fold functions in the C++ FE:
   - `fold_simple`
     - only few simplifications like `FLOAT_EXPR` -> `REAL_CST`, or fold `SIZEOF_EXPR`s

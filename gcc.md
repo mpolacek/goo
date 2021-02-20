@@ -113,7 +113,7 @@ Life begins in `c_parse_file`:
 
 within the member-specification of the class or class template.
 
-And [class.mem]p8: *The class is regarded as complete within its complete-class contexts.*  So we defer parsing to handle this.  This is implemented via `cp_parser_late_parsing_for_member`, `cp_parser_late_parsing_nsdmi`, `cp_parser_late_noexcept_specifier`, etc.  And unparsed entity is represented by a `DEFERRED_PARSE`.
+And [class.mem]p8: *The class is regarded as complete within its complete-class contexts.*  So we defer parsing to handle this.  This is implemented via `cp_parser_late_parsing_for_member`, `cp_parser_late_parsing_nsdmi`, `cp_parser_late_noexcept_specifier`, etc.  An unparsed entity is represented by a `DEFERRED_PARSE`.
 
 
 ### Templates

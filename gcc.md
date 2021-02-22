@@ -67,6 +67,23 @@ potentially constant evaluated expression
   - `cp_fold_function`
 - we now use the pre-generic form for constexpr evaluation
 
+#### `potential-constant-expression?`
+To check if an expression could be constant, you can use:
+
+- `potential_constant_expression`
+- `potential_rvalue_constant_expression`
+- `require_potential_constant_expression`
+- `require_potential_rvalue_constant_expression`
+- `require_rvalue_constant_expression`
+- `is_constant_expression`
+- `is_rvalue_constant_expression`
+- `require_constant_expression`
+- `is_static_init_expression`
+- `is_nondependent_constant_expression`
+- `is_nondependent_static_init_expression`
+
+There are various parameters to specify the behavior: if we want to imply an lvalue-rvalue conversion, if an error message should be emitted, whether we want to consider the constexpr context, or if we should be strict (affects `VAR_DECL`s).  For instance, a `reinterpreter_cast` is not a potential constant expression.  Or a temporary of non-literal type is also not a constant expression.
+
 #### `maybe_constant_value`
 - takes a (non-dependent) constant expression and returns its reduced value
 - noop for `CONSTANT_CLASS_P` expressions
@@ -84,6 +101,10 @@ potentially constant evaluated expression
 - the constexpr expansion context, we can have more of them per one "main" constexpr expansion context
 - we create a new one when evaluating a function call, array reference, a `{}`, ... see `cxx_eval_builtin_function_call`, `cxx_eval_call_expression`, `cxx_eval_array_reference`, `cxx_eval_bare_aggregate`, `cxx_eval_vec_init_1`
 - contains e.g. the innermost call we're evaluating; the constructor we're currently building up (in aggregate initialization); a pointer to its parent; a pointer to the global constexpr context; `quiet`/`strict`/`manifestly_const_eval` flags
+
+##### `constexpr_call`
+- represent calls to constexpr functions
+- contains e.g. the function definition, the mapping of its parameters, and the result of the function call
 
 #### `cxx_eval_outermost_constant_expr`
 - the central point to evaluate a constexpr
@@ -112,6 +133,78 @@ constexpr int foo (int i) {
 }
 static_assert (foo (4) == 50);
 ```
+
+1. `finish_static_assert` gets as the condition `foo (NON_LVALUE_EXPR <4>) == 50`.  Use `fold_non_dependent_expr` -> `maybe_constant_value` to evaluate it.  We're in a `manifestly_const_eval` context: [expr.const]p14: *An expression or conversion is manifestly constant-evaluated if it is: -- a constant-expression, [...]* and
+```
+static_assert-declaration:
+  static_­assert ( constant-expression ) ;
+  static_­assert ( constant-expression , string-literal ) ;
+```
+So we don't look into the `cv_cache` and go straight to...
+
+2. `cxx_eval_outermost_constant_expr`: build up a new global and "local" constexpr context.  The expression doesn't contain any constexpr functions to instantiate.
+3. call `cxx_eval_constant_expression` to actually evaluate the expression.  We have an `EQ_EXPR` -> call `cxx_eval_binary_expression` on both the LHS and RHS.  The RHS is 50, so there's nothing to do.  The LHS is a `CALL_EXPR`, so `cxx_eval_constant_expression` calls:
+4. `cxx_eval_call_expression (foo (NON_LVALUE_EXPR <4>))`:
+   1. new `constexpr_call`
+   2. lookup the function definition foo in `constexpr_fundef_table` using `retrieve_constexpr_fundef` (it is put there by `register_constexpr_fundef`):
+```
+(gdb) p *new_call.fundef
+$34 = {decl = <function_decl 0x7fffea232e00 foo>, body = <bind_expr 0x7fffea241990>, 
+  parms = <parm_decl 0x7fffea242100 i>, result = <result_decl 0x7fffea0dde88>}
+```
+    3. evaluate the function call arguments: `cxx_bind_parameters_in_call` walks over the function arguments (here it's `(4)`) and evaluates them via `cxx_eval_constant_expression` and then saves them into the vector `new_call->bindings`.  Here that results in `<4>`.
+ 
+    4. look to see if we've already evaluated this call before with the same parameter bindings:
+```
+(gdb) p new_call
+$47 = {fundef = 0x7fffea22cb20, bindings = <tree_vec 0x7fffea22cc40>, result = <tree 0x0>, 
+  hash = 4171003643, manifestly_const_eval = true}
+```
+```c++
+constexpr_call **slot = constexpr_call_table->find_slot (&new_call, INSERT);
+```
+
+    5. since we haven't evaluated this call before, we need to do so now.  Start by remapping the parameters: take our `new_call.bindings` which is `<4>` and for each element of this vector:
+       - unshare it,
+       - put it into the hash map: `ctx->global->values.put (remapped, arg);` where `remapped` is `parm_decl i` and `arg` is `4`. 
+        - put the function's `RESULT_DECL` into the map: `ctx->global->values.put (res, NULL_TREE);` (we have no value for it yet)
+       - evaluate the function's body: `cxx_eval_constant_expression (body)` where `body` is
+```c++
+int r = VIEW_CONVERT_EXPR<int>(i) * 2;
+return <retval> = VIEW_CONVERT_EXPR<int>(r) + (int) VIEW_CONVERT_EXPR<const int>(g);
+```
+       - note that right before evaluating the body we get
+```
+(gdb) p *ctx->global->values.get(res)
+$71 = (tree_node *) 0x0
+```
+but after it:
+```
+(gdb) pge *ctx->global->values.get(res)
+50
+```
+which is the result:
+```c++
+result = *ctx->global->values.get (res);
+```
+   
+       - now remove the `RESULT_DECL` and parameter binding from the hash map
+       - save the result to our `constexpr_call.result` field: `entry->result = cacheable ? result : error_mark_node;`
+and we're done: `return result;`
+
+5. so the result of the call to `foo (4)` is `50`.  Now we're back in `cxx_eval_binary_expression` and ready to get the result and return it:
+
+```
+(gdb) p code
+$78 = EQ_EXPR
+(gdb) pge lhs
+50
+(gdb) pge rhs
+50
+3188	    r = fold_binary_loc (loc, code, type, lhs, rhs);
+```
+
+6. `maybe_constant_value` returns `1`
 
 #### Other
 - `constexpr` is Turing-complete after [DR 1454](https://wg21.link/cwg1454) (reference parameters in constexpr functions)

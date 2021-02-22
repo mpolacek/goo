@@ -538,6 +538,7 @@ though we don't do it for function templates -- bug!
 - passing instantiated codes to `tsubst` -> crash; see e.g. `case FIX_TRUNC_EXPR` in `tsubst_copy_and_build`
 - deduction against `braced-init-list` wasn't supported until [DR 1591](https://wg21.link/cwg1591)
 - [DR 226](https://wg21.link/cwg226): allowed template default arguments of function templates (C++11)
+- `decl_constant_var_p` -- if the VAR_DECL's value can be used in a constant expression.  Calls `maybe_instantiate_decl (decl)` to detect using DECL in its own initializer.
 
 ### Bit-fields
 - `TREE_TYPE` is the magic bit-field integral type; the lowered type

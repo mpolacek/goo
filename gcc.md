@@ -68,13 +68,50 @@ potentially constant evaluated expression
 - we now use the pre-generic form for constexpr evaluation
 
 #### `maybe_constant_value`
+- takes a (non-dependent) constant expression and returns its reduced value
+- noop for `CONSTANT_CLASS_P` expressions
 - doesn't error on a non-constant expression; is `strict`
 - unlike the similar functions, uses a hash table to store evaluated expressions: `tree -> tree` mapping in `cv_cache`
-- if the expression to evaluate isn't already in the hash table, call `cxx_eval_outermost_constant_expr` to actually evaluate the expression
+- if the expression to evaluate isn't already in the hash table, call `cxx_eval_outermost_constant_expr` to actually evaluate the expression (see below)
+
+#### Data structures in constexpr
+##### `constexpr_global_ctx`
+- a constexpr expansion context, just one per evaluate-outermost-constant-expression
+- most importantly, contains a hash map of temporaries or local variables within the constant expression: `hash_map<tree,tree> values;`
+- created only in `cxx_eval_outermost_constant_expr`, once per each call
+
+##### `constexpr_ctx`
+- the constexpr expansion context, we can have more of them per one "main" constexpr expansion context
+- we create a new one when evaluating a function call, array reference, a `{}`, ... see `cxx_eval_builtin_function_call`, `cxx_eval_call_expression`, `cxx_eval_array_reference`, `cxx_eval_bare_aggregate`, `cxx_eval_vec_init_1`
+- contains e.g. the innermost call we're evaluating; the constructor we're currently building up (in aggregate initialization); a pointer to its parent; a pointer to the global constexpr context; `quiet`/`strict`/`manifestly_const_eval` flags
 
 #### `cxx_eval_outermost_constant_expr`
 - the central point to evaluate a constexpr
-- **TODO**
+1. create a new `constexpr_global_ctx` and `constexpr_ctx`
+2. if we're evaluating an aggregate, create a new `{}` and put it into `ctx.ctor`, set `ctx.object` (which is what we're building the CONSTRUCTOR for)
+3. instantiate any constexpr functions named in the expression (P0859, see `instantiate_constexpr_fns`)
+4. actually evaluate the expression: `cxx_eval_constant_expression`
+5. make sure that we got a constant expression; perform some checks.  In constexpr, when an expression couldn't be evaluated, we set `non_constant_p`.
+6. unshare the evaluated expression
+7. return the evaluated expression
+
+#### `cxx_eval_constant_expression`
+- this is where we perform the actual constexpr evaluation
+- depends if we want an lvalue or not (for instance, when evaluating `&exp` we want an lvalue `exp`)
+- `ctx->strict` makes a difference for `VAR_DECL`s
+- depending on the `TREE_CODE` of the expression dispatches to more specialized functions, e.g. `cxx_eval_loop_expr` et al
+- does ***not*** handle template codes; those need to be instantiated first via `fold_non_dependent_expr` and such.  Otherwise you'll get "unexpected expression of kind".
+
+#### Example #1
+Consider
+```c++
+constexpr int g = 42;
+constexpr int foo (int i) {
+  int r = i * 2;
+  return r + g;
+}
+static_assert (foo (4) == 50);
+```
 
 #### Other
 - `constexpr` is Turing-complete after [DR 1454](https://wg21.link/cwg1454) (reference parameters in constexpr functions)

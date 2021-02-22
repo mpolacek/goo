@@ -146,34 +146,31 @@ So we don't look into the `cv_cache` and go straight to...
 3. call `cxx_eval_constant_expression` to actually evaluate the expression.  We have an `EQ_EXPR` -> call `cxx_eval_binary_expression` on both the LHS and RHS.  The RHS is 50, so there's nothing to do.  The LHS is a `CALL_EXPR`, so `cxx_eval_constant_expression` calls:
 4. `cxx_eval_call_expression (foo (NON_LVALUE_EXPR <4>))`:
    1. new `constexpr_call`
-   2. lookup the function definition foo in `constexpr_fundef_table` using `retrieve_constexpr_fundef` (it is put there by `register_constexpr_fundef`):
-```
-(gdb) p *new_call.fundef
+   2. lookup the function definition foo in `constexpr_fundef_table` using `retrieve_constexpr_fundef` (it is put there by `register_constexpr_fundef`): 
+`(gdb) p *new_call.fundef
 $34 = {decl = <function_decl 0x7fffea232e00 foo>, body = <bind_expr 0x7fffea241990>, 
-  parms = <parm_decl 0x7fffea242100 i>, result = <result_decl 0x7fffea0dde88>}
-```
+  parms = <parm_decl 0x7fffea242100 i>, result = <result_decl 0x7fffea0dde88>}`
+
     3. evaluate the function call arguments: `cxx_bind_parameters_in_call` walks over the function arguments (here it's `(4)`) and evaluates them via `cxx_eval_constant_expression` and then saves them into the vector `new_call->bindings`.  Here that results in `<4>`.
  
     4. look to see if we've already evaluated this call before with the same parameter bindings:
-```
-(gdb) p new_call
+`(gdb) p new_call
 $47 = {fundef = 0x7fffea22cb20, bindings = <tree_vec 0x7fffea22cc40>, result = <tree 0x0>, 
-  hash = 4171003643, manifestly_const_eval = true}
-```
-```c++
-constexpr_call **slot = constexpr_call_table->find_slot (&new_call, INSERT);
-```
+  hash = 4171003643, manifestly_const_eval = true}`
 
     5. since we haven't evaluated this call before, we need to do so now.  Start by remapping the parameters: take our `new_call.bindings` which is `<4>` and for each element of this vector:
        - unshare it,
        - put it into the hash map: `ctx->global->values.put (remapped, arg);` where `remapped` is `parm_decl i` and `arg` is `4`. 
         - put the function's `RESULT_DECL` into the map: `ctx->global->values.put (res, NULL_TREE);` (we have no value for it yet)
        - evaluate the function's body: `cxx_eval_constant_expression (body)` where `body` is
+
 ```c++
 int r = VIEW_CONVERT_EXPR<int>(i) * 2;
 return <retval> = VIEW_CONVERT_EXPR<int>(r) + (int) VIEW_CONVERT_EXPR<const int>(g);
 ```
-       - note that right before evaluating the body we get
+
+- note that right before evaluating the body we get
+
 ```
 (gdb) p *ctx->global->values.get(res)
 $71 = (tree_node *) 0x0
@@ -188,8 +185,8 @@ which is the result:
 result = *ctx->global->values.get (res);
 ```
    
-       - now remove the `RESULT_DECL` and parameter binding from the hash map
-       - save the result to our `constexpr_call.result` field: `entry->result = cacheable ? result : error_mark_node;`
+- now remove the `RESULT_DECL` and parameter binding from the hash map
+- save the result to our `constexpr_call.result` field: `entry->result = cacheable ? result : error_mark_node;`
 and we're done: `return result;`
 
 5. so the result of the call to `foo (4)` is `50`.  Now we're back in `cxx_eval_binary_expression` and ready to get the result and return it:

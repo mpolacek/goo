@@ -214,6 +214,7 @@ $78 = EQ_EXPR
 - can't call `maybe_constant_value` on an unresolved overloaded function (like in [PR46903](https://gcc.gnu.org/PR46903))
 - N4268: Allow constant evaluation for all non-type template arguments
 - in a constexpr function, a parameter is potentially constant when evaluating a call to that function, but it is not constant during parsing of the function; see this [patch](https://gcc.gnu.org/pipermail/gcc-patches/2020-May/546260.html)
+- `is_instantiation_of_constexpr` -- if a function is an instantiation of a constexpr function
 
 ### Parser
 Life begins in `c_parse_file`:
@@ -539,6 +540,7 @@ though we don't do it for function templates -- bug!
 - deduction against `braced-init-list` wasn't supported until [DR 1591](https://wg21.link/cwg1591)
 - [DR 226](https://wg21.link/cwg226): allowed template default arguments of function templates (C++11)
 - `decl_constant_var_p` -- if the VAR_DECL's value can be used in a constant expression.  Calls `maybe_instantiate_decl (decl)` to detect using DECL in its own initializer.
+- `check_template_shadow` -- checks if a decl shadows a template parameter
 
 ### Bit-fields
 - `TREE_TYPE` is the magic bit-field integral type; the lowered type

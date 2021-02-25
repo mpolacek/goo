@@ -215,6 +215,7 @@ $78 = EQ_EXPR
 - N4268: Allow constant evaluation for all non-type template arguments
 - in a constexpr function, a parameter is potentially constant when evaluating a call to that function, but it is not constant during parsing of the function; see this [patch](https://gcc.gnu.org/pipermail/gcc-patches/2020-May/546260.html)
 - `is_instantiation_of_constexpr` -- if a function is an instantiation of a constexpr function
+- `cp_function_chain->invalid_constexpr` -- set for invalid constexpr functions
 
 ### Parser
 Life begins in `c_parse_file`:

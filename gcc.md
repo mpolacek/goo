@@ -294,6 +294,8 @@ And [class.mem]p8: *The class is regarded as complete within its complete-class 
 - `++`, `--`, binary ops
 - `CALL_EXPR`: depends if it's ADL or not; `finish_call_expr`
 - `COND_EXPR`
+- handles a `CONSTRUCTOR` which `tsubst` doesn't
+- no `tsubst*` function handles `AGGR_INIT_EXPR`
 
 #### non-deduced contexts
 - see *[temp.deduct.type]*, e.g., *the expression of a decltype-specifier*

@@ -540,6 +540,7 @@ though we don't do it for function templates -- bug!
 - class templates: member functions are instantiated only if they are used
 - if a class template has static members, they are instantiated once for each type for which the class template is used
 - passing instantiated codes to `tsubst` -> crash; see e.g. `case FIX_TRUNC_EXPR` in `tsubst_copy_and_build`
+  - we used to handle (wrongly) `FIX_TRUNC_EXPR` in `tsubst_copy_and_build`, but since [r258821](https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=c1e7c3f2015247369b040a3ab24e85d4d68f51f4) we don't
 - deduction against `braced-init-list` wasn't supported until [DR 1591](https://wg21.link/cwg1591)
 - [DR 226](https://wg21.link/cwg226): allowed template default arguments of function templates (C++11)
 - `decl_constant_var_p` -- if the VAR_DECL's value can be used in a constant expression.  Calls `maybe_instantiate_decl (decl)` to detect using DECL in its own initializer.

@@ -5,6 +5,7 @@
 - [Itanium C++ ABI](http://itanium-cxx-abi.github.io/cxx-abi/)
 - [C++ PRs](https://gcc.gnu.org/bugzilla/buglist.cgi?component=c%2B%2B&limit=0&list_id=285895&order=bug_id%20DESC&product=gcc&query_format=advanced&resolution=---)
 - [gcc git](https://gcc.gnu.org/git/?p=gcc.git;a=summary)
+- [gcc lcov](https://splichal.eu/lcov/index.html)
 - [safe bool problem](https://en.cppreference.com/w/cpp/language/implicit_conversion)
 
 ## C++ front end

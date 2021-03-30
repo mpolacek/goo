@@ -757,6 +757,13 @@ extern "C" void __cxa_pure_virtual ();
 - default argument ~ a separate definition: [temp.decls]
 - functions are not modifiable even though they are lvalues
 
+## C++20 Modules
+- A Module System for C++: [P0142](https://wg21.link/p0142)
+- Modules TS: [N4720](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4720.pdf)
+- Merging Modules: [P1103](https://wg21.link/p1103)
+- Davis's SO [answer](https://stackoverflow.com/questions/22693950/what-exactly-are-c-modules)
+- another good [resource](https://vector-of-bool.github.io/2019/03/10/modules-1.html)
+- linkage promotion discussed [here](https://wg21.link/p1395), fixed by [P1498](https://wg21.link/p1498)?
 
 ## C++ library
 
@@ -831,6 +838,7 @@ nope:
 ```
 - libgcc unwinder has a global lock: `_Unwind_Find_FDE` has `object_mutex`
 - `cp/g++spec.c` -- `lang_specific_driver`, adds `-lstdc++` using `generate_option`
+- multi-target toolchain [email](https://gcc.gnu.org/legacy-ml/gcc-patches/2010-06/msg02675.html)
 
 ## Built-ins
 

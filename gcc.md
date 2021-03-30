@@ -763,7 +763,10 @@ extern "C" void __cxa_pure_virtual ();
 - Merging Modules: [P1103](https://wg21.link/p1103)
 - Davis's SO [answer](https://stackoverflow.com/questions/22693950/what-exactly-are-c-modules)
 - another good [resource](https://vector-of-bool.github.io/2019/03/10/modules-1.html)
+- module mapper: [P1184](https://wg21.link/p1184)
+- Make Me A Module: [P1602](https://wg21.link/p1602)
 - linkage promotion discussed [here](https://wg21.link/p1395), fixed by [P1498](https://wg21.link/p1498)?
+- inline and modules: [P1604](https://wg21.link/p1604)
 
 ## C++ library
 

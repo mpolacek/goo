@@ -9,8 +9,20 @@ void print (T t, Types... args)
     print (args...);
 }
 
+template<typename... Ts>
+void print_backwards (Ts... args)
+{
+  auto print_one = [](auto t) {
+    std::cout << t << '\n';
+    // Needs C++20.
+    return std::type_identity<void>();
+  };
+  (print_one (args) = ...);
+}
+
 int
 main ()
 {
   print<char, const char *, int>('a', "foo", 42);
+  print_backwards(1, "cat", 2, "raccoon", 3, "dog");
 }

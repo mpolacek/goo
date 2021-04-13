@@ -86,18 +86,54 @@ void f() {
 Interestingly, this change was first discussed over 20 years ago in [CWG 92](https://wg21.link/cwg92), and was finally adopted in [P0012R1](https://wg21.link/p0012).
 
 #### Dynamic exception specifications removed
+C++11 added `noexcept` exception-specification in [N3050](https://wg21.link/n3050), and at the same time *dynamic* exception specifications were deprecated in [N3051](https://wg21.link/n3051) (including `throw()`).  In C++17, dynamic exception specifications were removed altogether in [P0003R5](https://wg21.link/p0003).  The exception is that `throw()` continues to work, and is equivalent to `noexcept(true)`.  Moreover, in C++17, the function `std::unexpected` was removed.  This function used to be called if a function decorated with `throw()` actually did throw an exception.  In C++17, `std::terminate` is called instead.  
 
-TODO
+C++17 code may not use dynamic exception specifications and should replace `throw()` with `noexcept`.
 
-* [ ] 
+An example might help to clarify this:
+
+```c++
+void fn1() throw(int); // error in C++17, warning in C++14
+void fn2() noexcept; // OK since C++11
+void fn3() throw(); // deprecated but no warning in C++17
+void fn4() throw() { throw; }
+// In C++14, calls std::unexpected which calls std::unexpected_handler
+// (which is std::terminate by default).
+// In C++17, calls std::terminate directly.
+```
+
+### New template template parameter matching
 C++17 changes to template template parameter matching can be disabled independently of other features with -fno-new-ttp-matching.  DR 150 P0522R0 r243871
 
-* [ ]
-the evaluation order rules are different in C++17,
+### Static constexpr class members implicitly inline
+The C++17 proposal to introduce inline variables ([P0386R2](https://wg21.link/p0386)) brought this change into [dcl.constexpr]: *A function or static data member declared with the constexpr or consteval specifier is implicitly an inline function or variable.*
 
-* [ ]
-static constexpr data members are now implicitly inline (which makes
-  them definitions),
+As a consequence, the member `A::n` in the following example is a definition in C++17.  Without `#2`, the program wouldn't link when compiled in C++14 mode.  In C++17, `#2` may be removed, as it's redundant.
+
+```c++
+struct A {
+  static constexpr int n = 5; // #1, definition in C++17, declaration in C++14
+};
+
+constexpr int A::n; // #2, definition in C++14, deprecated redeclaration in C++17
+
+auto g()
+{
+  return &A::n; // ODR-use of A::n -- needs a definition
+}
+```
+
+### Evaluation order rules changes
+C++17 [P0145R3](https://wg21.link/p0145) clarified the order of evaluation of various subexpressions.  As the proposal states, the following expressions are evaluated in such a way that `a` is evaluated before `b` which is evaluated before `c`:
+   
+1. `a.b`
+2. `a->b`
+3. `a->*b`
+4. `a (b1, b2, b3)`
+5. `b op= a`
+6. `a[b]`
+7. `a << b`
+8. `a >> b`
 
 * [ ]
 C++17 requires guaranteed copy elision, meaning that a copy/move

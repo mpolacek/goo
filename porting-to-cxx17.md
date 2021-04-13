@@ -3,7 +3,7 @@
 In GCC 11, expected to be released in May 2021, the C++ default was [changed to C++17](https://gcc.gnu.org/gcc-11/changes.html) from C++14; in particular, the `-std=gnu++17` command-line option is now used by default.  C++17 brings a host of [new features](https://gcc.gnu.org/projects/cxx-status.html#cxx17), but it also deprecates, removes, or changes the semantics of certain constructs.  In the following article we take a look at some of the issues users may be facing when switching to GCC 11.  Remember that it is always possible to use the the previous C++ mode by using `-std=gnu++14`.  Moreover, this article only deals with the core language part; deprecated or removed features in the standard C++ library (such as `auto_ptr`) are not discussed here.  I encourage the reader to visit [this document](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0636r3.html) for a broader overview.
 
 ### Trigraphs removed
-In C++, a trigraph is a sequence of three characters starting with `??` that can express a single character.  For instance, `\` can be written as `??/`.  The reason for this is historical: C and C++ use special characters like `[` or `]` that are not defined in the ISO 646 character set.  The positions of these characters in the ISO table might be occupied by different characters in national ISO 646 characters sets, e.g. `¥` in place of `\`.  Trigraphs were meant to allow expressing such characters, but in practice, they are likely to only be used accidentally, and so were [removed](https://wg21.link/n4086) in C++17.  The removal allows you to play "cute" games like the following test.   Can you see why it works?.  If you for some reason still need to use trigraps in C++17 (indeed, there are code bases which [still use trigraphs](https://wg21.link/n2910)), GCC offers the `-trigraphs` command-line option.
+In C++, a trigraph is a sequence of three characters starting with `??` that can express a single character.  For instance, `\` can be written as `??/`.  The reason for this is historical: C and C++ use special characters like `[` or `]` that are not defined in the ISO 646 character set.  The positions of these characters in the ISO table might be occupied by different characters in national ISO 646 characters sets, e.g. `¥` in place of `\`.  Trigraphs were meant to allow expressing such characters, but in practice, they are likely to only be used accidentally, and so were [removed](https://wg21.link/n4086) in C++17.  The removal allows you to play "cute" games like the following test.   Can you see why it works?  If you for some reason still need to use trigraps in C++17 (indeed, there are code bases which [still use trigraphs](https://wg21.link/n2910)), GCC offers the `-trigraphs` command-line option.
 
 ```c++
 bool cxx_with_trigraphs_p () {
@@ -124,7 +124,7 @@ auto g()
 ```
 
 ### Evaluation order rules changes
-C++17 [P0145R3](https://wg21.link/p0145) clarified the order of evaluation of various subexpressions.  As the proposal states, the following expressions are evaluated in such a way that `a` is evaluated before `b` which is evaluated before `c`:
+C++17 [P0145R3](https://wg21.link/p0145) clarified the order of evaluation of various subexpressions and .  As the proposal states, the following expressions are evaluated in such a way that `a` is evaluated before `b` which is evaluated before `c`:
    
 1. `a.b`
 2. `a->b`
@@ -135,8 +135,48 @@ C++17 [P0145R3](https://wg21.link/p0145) clarified the order of evaluation of va
 7. `a << b`
 8. `a >> b`
 
-* [ ]
-C++17 requires guaranteed copy elision, meaning that a copy/move
-  constructor call might be elided completely.  That means that if
-  something relied on a constructor being instantiated via e.g. copying
-  a function parameter, it might now fail.
+This has resulted in some changes in the compiler, and certain code might behave differently in C++14 and C++17, as the following test illustrates.  It is possible to selectively adjust the compiler behavior using the `-fstrong-eval-order={all|some|none}` compile-time option, where `all` is the default in C++17 and `some` is the default in C++14.
+
+```c++
+int
+fn ()
+{
+  int ar[4]{ };
+  int i = 0;
+  ar[i++] = i;
+  return ar[0]; // returns 0 in C++17, 1 in C++14
+}
+
+int
+fn2 ()
+{
+  int x = 2;
+  return x << (x = 1, 2); // returns 8 in C++17, 4 in C++14
+}
+
+int
+fn3 ()
+{
+  int x = 6;
+  return x >> (x = 5, 1); // returns 3 in C++17, 2 in C++14
+}
+```
+
+### Guaranteed copy elision
+
+C++17 requires guaranteed copy elision, meaning that a copy/move constructor call might be elided completely (under certain circumstances, like when the type of the initializer and target are the same).  That means that, theoretically, if something relied on a constructor being instantiated via e.g. copying a function parameter, it might now fail, as the constructor may not be instantiated in C++17.  Since G++ already performed copy/move elision as an optimization even in C++14 mode, this is unlikely to happen in practice.  However, the difference is that in C++17 the compiler will not perform access checking on the elided constructor, therefore code that didn't compile previously may compile now.  The following snippet shows this:
+
+```c++
+class A {
+  int i;
+public:
+  A() : i{42} {}
+private:
+  A(const A &);
+};
+
+struct B {
+  A a;
+  B() : a(A()) {} // OK in C++17, error in C++14
+};
+```

@@ -208,6 +208,8 @@ fn3 ()
 }
 ```
 
+The aforementioned paper also defines the evaluation order in case some of the operands listed above are overloaded and are using the operator syntax: they follow the order prescribed for the built-in operator.
+
 ### Guaranteed copy elision
 
 C++17 requires guaranteed copy elision, meaning that a copy/move constructor call will be elided completely under certain circumstances (like when the type of the initializer and target are the same), even when it has side effects.  That means that, theoretically, if something relied on a constructor being instantiated via e.g. copying a function parameter, it might now fail, as the constructor may not be instantiated in C++17.  Since G++ already performed copy/move elision as an optimization even in C++14 mode, this is unlikely to happen in practice.  However, the difference is that in C++17 the compiler will not perform access checking on the elided constructor, therefore code that didn't compile previously may compile now.  The following snippet shows this:

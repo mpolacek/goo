@@ -1,6 +1,6 @@
 # Migrating to C++17
 
-In GCC 11, expected to be released in May 2021, the C++ default was [changed to C++17](https://gcc.gnu.org/gcc-11/changes.html) from C++14; in particular, the `-std=gnu++17` command-line option is now used by default.  C++17 brings a host of [new features](https://gcc.gnu.org/projects/cxx-status.html#cxx17), but it also deprecates, removes, or changes the semantics of certain constructs.  In the following article we take a look at some of the issues users may be facing when switching to GCC 11.  Remember that it is always possible to use the the previous C++ mode by using `-std=gnu++14`.  Moreover, this article only deals with the core language part; deprecated or removed features in the standard C++ library (such as `auto_ptr`) are not discussed here.  I encourage the reader to visit [this document](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0636r3.html) for a broader overview.
+In GCC 11, expected to be released in May 2021, the C++ default was [changed to C++17](https://gcc.gnu.org/gcc-11/changes.html) from C++14; in particular, the `-std=gnu++17` command-line option is now used by default.  C++17 brings a host of [new features](https://gcc.gnu.org/projects/cxx-status.html#cxx17), but it also deprecates, removes, or changes the semantics of certain constructs.  In the following article we take a look at some of the issues users may be facing when switching to GCC 11.  Remember that it is always possible to use the the previous C++ mode by using `-std=gnu++14`.  Moreover, this article only deals with the core language part; deprecated or removed features in the standard C++ library (such as `auto_ptr`) are not discussed here.  I encourage the reader to visit [this document](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0636r3.html) for a broader overview.  For more information regarding switching to using GCC 11, please see our [upstream document](https://gcc.gnu.org/gcc-11/porting_to.html).
 
 ### Trigraphs removed
 In C++, a trigraph is a sequence of three characters starting with `??` that can express a single character.  For instance, `\` can be written as `??/`.  The reason for this is historical: C and C++ use special characters like `[` or `]` that are not defined in the ISO 646 character set.  The positions of these characters in the ISO table might be occupied by different characters in national ISO 646 characters sets, e.g. `¥` in place of `\`.  Trigraphs were meant to allow expressing such characters, but in practice, they are likely to only be used accidentally, and so were [removed](https://wg21.link/n4086) in C++17.  The removal allows you to play "cute" games like the following test.   Can you see why it works?  If you for some reason still need to use trigraps in C++17 (indeed, there are code bases which [still use trigraphs](https://wg21.link/n2910)), GCC offers the `-trigraphs` command-line option.
@@ -103,7 +103,53 @@ void fn4() throw() { throw; }
 ```
 
 ### New template template parameter matching
-C++17 changes to template template parameter matching can be disabled independently of other features with -fno-new-ttp-matching.  DR 150 P0522R0 r243871
+The C++17 proposal [P0522R0](https://wg21.link/p0522), *Matching of template template-arguments excludes compatible templates* which fixed [DR 150](https://wg21.link/cwg150) was fixed in GCC 7, but the new behavior was off by default.  Since GCC 11 defaults to C++17, the new behavior is enabled by default.
+
+In the old behavior, the template template-argument for a template template-parameter must be a template with a parameter list that exactly matches the corresponding parameters in the template parameter's parameter list.  The new behavior is less strict in that default template arguments of template template-arguments are considered for the matching.  This was problematic for instance for `std::deque` which is a template with a default template argument: 
+
+```c++
+template<typename T, typename Allocator = std::allocator<T>>
+class deque;
+```
+
+The following code therefore only works with the new behavior (that is, `-fnew-ttp-matching` is in effect):
+
+```c++
+#include <deque>
+
+template <template <typename> class>
+void fn() {}
+template void fn<std::deque>();
+```
+
+The workaround is to adjust the declaration in such a way that the parameter expects two type parameters:
+
+```c++
+#include <deque>
+
+template <template <typename, typename> class>
+void fn() {}
+template void fn<std::deque>();
+```
+
+However, the new behavior can also cause code that worked in the old behavior to not compile anymore:
+
+```c++
+template <int N, int M = N> class A { };
+template <int N, int M> void fn(A<N, M>) {}
+template <int N, template <int> typename T> void fn(T<N>);
+
+void
+g ()
+{
+  A<3> a;
+  fn (a); // ambiguous in C++17
+}
+```
+
+The reason is that `A` is considered a valid argument for `T` in the new behavior. Therefore both function templates are valid candidates, and because neither is more specialized than the other,  the function call to `fn` has become ambiguous.
+
+It's possible to revert to the old behavior even in C++17 mode by using `-fno-new-ttp-matching`.
 
 ### Static constexpr class members implicitly inline
 The C++17 proposal to introduce inline variables ([P0386R2](https://wg21.link/p0386)) brought this change into [dcl.constexpr]: *A function or static data member declared with the constexpr or consteval specifier is implicitly an inline function or variable.*

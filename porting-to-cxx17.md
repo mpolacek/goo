@@ -154,7 +154,7 @@ It's possible to revert to the old behavior even in C++17 mode by using `-fno-ne
 ### Static constexpr class members implicitly inline
 The C++17 proposal to introduce inline variables ([P0386R2](https://wg21.link/p0386)) brought this change into [dcl.constexpr]: *A function or static data member declared with the constexpr or consteval specifier is implicitly an inline function or variable.*
 
-As a consequence, the member `A::n` in the following example is a definition in C++17.  Without `#2`, the program wouldn't link when compiled in C++14 mode.  In C++17, `#2` may be removed, as it's redundant.
+As a consequence, the member `A::n` in the following example is a definition in C++17.  Without `#2`, the program wouldn't link when compiled in C++14 mode.  In C++17, `#2` may be removed because it's redundant.
 
 ```c++
 struct A {
@@ -170,7 +170,7 @@ auto g()
 ```
 
 ### Evaluation order rules changes
-C++17 [P0145R3](https://wg21.link/p0145) clarified the order of evaluation of various subexpressions and .  As the proposal states, the following expressions are evaluated in such a way that `a` is evaluated before `b` which is evaluated before `c`:
+C++17 [P0145R3](https://wg21.link/p0145) clarified the order of evaluation of various expressions.  As the proposal states, the following expressions are evaluated in such a way that `a` is evaluated before `b` which is evaluated before `c`:
    
 1. `a.b`
 2. `a->b`
@@ -210,7 +210,7 @@ fn3 ()
 
 ### Guaranteed copy elision
 
-C++17 requires guaranteed copy elision, meaning that a copy/move constructor call might be elided completely (under certain circumstances, like when the type of the initializer and target are the same).  That means that, theoretically, if something relied on a constructor being instantiated via e.g. copying a function parameter, it might now fail, as the constructor may not be instantiated in C++17.  Since G++ already performed copy/move elision as an optimization even in C++14 mode, this is unlikely to happen in practice.  However, the difference is that in C++17 the compiler will not perform access checking on the elided constructor, therefore code that didn't compile previously may compile now.  The following snippet shows this:
+C++17 requires guaranteed copy elision, meaning that a copy/move constructor call might be elided completely (under certain circumstances, like when the type of the initializer and target are the same), even when it has side effects.  That means that, theoretically, if something relied on a constructor being instantiated via e.g. copying a function parameter, it might now fail, as the constructor may not be instantiated in C++17.  Since G++ already performed copy/move elision as an optimization even in C++14 mode, this is unlikely to happen in practice.  However, the difference is that in C++17 the compiler will not perform access checking on the elided constructor, therefore code that didn't compile previously may compile now.  The following snippet shows this:
 
 ```c++
 class A {

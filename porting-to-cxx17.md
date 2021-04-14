@@ -3,7 +3,7 @@
 In GCC 11, expected to be released in May 2021, the C++ default was [changed to C++17](https://gcc.gnu.org/gcc-11/changes.html) from C++14; in particular, the `-std=gnu++17` command-line option is now used by default.  C++17 brings a host of [new features](https://gcc.gnu.org/projects/cxx-status.html#cxx17), but it also deprecates, removes, or changes the semantics of certain constructs.  In the following article we take a look at some of the issues users may be facing when switching to GCC 11.  Remember that it is always possible to use the the previous C++ mode by using `-std=gnu++14`.  Moreover, this article only deals with the core language part; deprecated or removed features in the standard C++ library (such as `auto_ptr`) are not discussed here.  I encourage the reader to visit [this document](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0636r3.html) for a broader overview.  For more information regarding switching to using GCC 11, please see our [upstream document](https://gcc.gnu.org/gcc-11/porting_to.html).
 
 ### Trigraphs removed
-In C++, a trigraph is a sequence of three characters starting with `??` that can express a single character.  For instance, `\` can be written as `??/`.  The reason for this is historical: C and C++ use special characters like `[` or `]` that are not defined in the ISO 646 character set.  The positions of these characters in the ISO table might be occupied by different characters in national ISO 646 characters sets, e.g. `¥` in place of `\`.  Trigraphs were meant to allow expressing such characters, but in practice, they are likely to only be used accidentally, and so were [removed](https://wg21.link/n4086) in C++17.  The removal allows you to play "cute" games like the following test.   Can you see why it works?  If you for some reason still need to use trigraps in C++17 (indeed, there are code bases which [still use trigraphs](https://wg21.link/n2910)), GCC offers the `-trigraphs` command-line option.
+In C++, a trigraph is a sequence of three characters starting with `??` that can express a single character.  For instance, `\` can be written as `??/`.  The reason for this is historical: C and C++ use special characters like `[` or `]` that are not defined in the ISO 646 character set.  The positions of these characters in the ISO table might be occupied by different characters in national ISO 646 characters sets, e.g. `¥` in place of `\`.  Trigraphs were meant to allow expressing such characters, but in practice, they are likely to only be used accidentally, and so were [removed](https://wg21.link/n4086) in C++17.  The removal allows you to play "cute" games like the following test.   Can you see why it works?  If for some reason you still need to use trigraphs in C++17 (indeed, there are code bases which [still use trigraphs](https://wg21.link/n2910)), GCC offers the `-trigraphs` command-line option.
 
 ```c++
 bool cxx_with_trigraphs_p () {
@@ -24,7 +24,7 @@ void f () {
 }
 ```
 
-In C++14, you can instruct the compiler to warn using `-Wregister`, which ought to help with migrating code to C++17.  Note that GCC still accepts explicit register variables without warning:
+In C++14, you can instruct the compiler to warn using `-Wregister`, which ought to help with migrating code to C++17.  Note that GCC still accepts the GNU extension [explicit register variables](https://gcc.gnu.org/onlinedocs/gcc/Global-Register-Variables.html#Global-Register-Variables) without warning:
 
 ```c++
 register int g asm ("ebx");
@@ -86,7 +86,7 @@ void f() {
 Interestingly, this change was first discussed over 20 years ago in [CWG 92](https://wg21.link/cwg92), and was finally adopted in [P0012R1](https://wg21.link/p0012).
 
 #### Dynamic exception specifications removed
-C++11 added `noexcept` exception-specification in [N3050](https://wg21.link/n3050), and at the same time *dynamic* exception specifications were deprecated in [N3051](https://wg21.link/n3051) (including `throw()`).  In C++17, dynamic exception specifications were removed altogether in [P0003R5](https://wg21.link/p0003).  The exception is that `throw()` continues to work, and is equivalent to `noexcept(true)`.  Moreover, in C++17, the function `std::unexpected` was removed.  This function used to be called if a function decorated with `throw()` actually did throw an exception.  In C++17, `std::terminate` is called instead.  
+C++11 added `noexcept` exception-specification in [N3050](https://wg21.link/n3050), and at the same time *dynamic* exception specifications were deprecated in [N3051](https://wg21.link/n3051) (including `throw()`).  In C++17, dynamic exception specifications were removed altogether in [P0003R5](https://wg21.link/p0003).  The exception is that `throw()` continues to work in C++17, and is equivalent to `noexcept(true)`, although it has been removed in C++20.  Moreover, in C++17, the function `std::unexpected` was removed.  This function used to be called if a function decorated with `throw()` actually did throw an exception.  In C++17, `std::terminate` is called instead.  
 
 C++17 code may not use dynamic exception specifications and should replace `throw()` with `noexcept`.
 
@@ -170,7 +170,7 @@ auto g()
 ```
 
 ### Evaluation order rules changes
-C++17 [P0145R3](https://wg21.link/p0145) clarified the order of evaluation of various expressions.  As the proposal states, the following expressions are evaluated in such a way that `a` is evaluated before `b` which is evaluated before `c`:
+C++17 [P0145R3](https://wg21.link/p0145) clarified the order of evaluation of various expressions.  As the proposal states, the following expressions are evaluated in such a way that `a` is evaluated before `b`:
    
 1. `a.b`
 2. `a->b`
@@ -210,7 +210,7 @@ fn3 ()
 
 ### Guaranteed copy elision
 
-C++17 requires guaranteed copy elision, meaning that a copy/move constructor call might be elided completely (under certain circumstances, like when the type of the initializer and target are the same), even when it has side effects.  That means that, theoretically, if something relied on a constructor being instantiated via e.g. copying a function parameter, it might now fail, as the constructor may not be instantiated in C++17.  Since G++ already performed copy/move elision as an optimization even in C++14 mode, this is unlikely to happen in practice.  However, the difference is that in C++17 the compiler will not perform access checking on the elided constructor, therefore code that didn't compile previously may compile now.  The following snippet shows this:
+C++17 requires guaranteed copy elision, meaning that a copy/move constructor call will be elided completely under certain circumstances (like when the type of the initializer and target are the same), even when it has side effects.  That means that, theoretically, if something relied on a constructor being instantiated via e.g. copying a function parameter, it might now fail, as the constructor may not be instantiated in C++17.  Since G++ already performed copy/move elision as an optimization even in C++14 mode, this is unlikely to happen in practice.  However, the difference is that in C++17 the compiler will not perform access checking on the elided constructor, therefore code that didn't compile previously may compile now.  The following snippet shows this:
 
 ```c++
 class A {

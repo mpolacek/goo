@@ -714,6 +714,10 @@ alias-declaration:
 - refers to a family of types
 - [temp.alias]
 
+#### More on aliases
+- `using`/`typedef` represented by a `TYPE_DECL`
+- `using name = type` has `TYPE_DECL_ALIAS_P` set
+
 ### Other
 - `grok_op_properties` --- checks a declaration of an overloaded or conversion operator
 - `grok_ctor_properties` --- checks if a constructor has the correct form

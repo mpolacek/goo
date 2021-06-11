@@ -717,6 +717,7 @@ alias-declaration:
 #### More on aliases
 - `using`/`typedef` represented by a `TYPE_DECL`
 - `using name = type` has `TYPE_DECL_ALIAS_P` set
+- can look at its `DECL_NAME` and `DECL_ORIGINAL_TYPE`
 
 ### Other
 - `grok_op_properties` --- checks a declaration of an overloaded or conversion operator

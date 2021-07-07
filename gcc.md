@@ -609,8 +609,9 @@ if (CHECKING_P && cxx_dialect >= cxx17)
 ### `TARGET_EXPR`
 - `INIT_EXPR` with a `TARGET_EXPR` as the RHS = direct-init
 - `MODIFY_EXPR` with a `TARGET_EXPR` as the RHS = copy
- - for classes but also when converting an integer to a reference type: `convert_like_internal/ck_ref_bind`
+- for classes but also when converting an integer to a reference type: `convert_like_internal/ck_ref_bind`
 - can express direct-init: `TARGET_EXPR_DIRECT_INIT`
+- should never get into `fold_non_dependent_expr`
 
 ### `NON_DEPENDENT_EXPR`
 - introduced 2003-07-08, gcc-3.4.0, [r69130](https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=d17811fd1aad24d0f47d0b20679753b23803848b)

@@ -762,6 +762,7 @@ extern "C" void __cxa_pure_virtual ();
 - *braced-init-list*s aren't expressions, so can't use `b ? {1,0} : {0,1}`
 - default argument ~ a separate definition: [temp.decls]
 - functions are not modifiable even though they are lvalues
+- function arguments of reference types aliasing: [basic.lval]/11
 
 ## C++20 Modules
 - A Module System for C++: [P0142](https://wg21.link/p0142)

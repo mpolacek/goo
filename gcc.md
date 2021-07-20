@@ -820,6 +820,12 @@ while ((count = read (file->fd, buf + total, size - total)) > 0)
 - return the next token and consume it: `cp_lexer_consume_token`
 - purge tokens: `cp_lexer_purge_tokens_after`, used in `cp_parser_check_for_invalid_template_id`
 
+### LTO and `.symver`
+
+- use the `symver` attribute instead, which is LTO friendly
+- [manual](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-symver-function-attribute)
+- [patch](https://gcc.gnu.org/pipermail/gcc-patches/2019-November/534408.html)
+
 ### Random
 
 - GCC 8 ABI bugs: [PR87137](https://gcc.gnu.org/PR87137) + [PR86094](https://gcc.gnu.org/PR86094)

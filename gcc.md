@@ -826,6 +826,11 @@ while ((count = read (file->fd, buf + total, size - total)) > 0)
 - [manual](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-symver-function-attribute)
 - [patch](https://gcc.gnu.org/pipermail/gcc-patches/2019-November/534408.html)
 
+### LTO and top-level asm
+
+- see [this](https://gcc.gnu.org/wiki/LinkTimeOptimizationFAQ#Symbol_usage_from_assembly_language)
+- or [PR57703](https://gcc.gnu.org/PR57703)
+
 ### Random
 
 - GCC 8 ABI bugs: [PR87137](https://gcc.gnu.org/PR87137) + [PR86094](https://gcc.gnu.org/PR86094)

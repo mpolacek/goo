@@ -825,6 +825,7 @@ while ((count = read (file->fd, buf + total, size - total)) > 0)
 - use the `symver` attribute instead, which is LTO friendly
 - [manual](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-symver-function-attribute)
 - [patch](https://gcc.gnu.org/pipermail/gcc-patches/2019-November/534408.html)
+- [PR48200](https://gcc.gnu.org/PR48200)
 
 ### LTO and top-level asm
 

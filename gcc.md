@@ -832,6 +832,12 @@ while ((count = read (file->fd, buf + total, size - total)) > 0)
 - see [this](https://gcc.gnu.org/wiki/LinkTimeOptimizationFAQ#Symbol_usage_from_assembly_language)
 - or [PR57703](https://gcc.gnu.org/PR57703)
 
+### Plugins
+
+- plugins location: use `--print-file-name=plugin` but that only works with the installed compiler: `make install` creates the plugin directory, it's not in the build directory.  Can use `-B` to point to it though.
+- `find_file` must be able to find "plugin"
+- configure option: `--enable-plugin`
+
 ### Random
 
 - GCC 8 ABI bugs: [PR87137](https://gcc.gnu.org/PR87137) + [PR86094](https://gcc.gnu.org/PR86094)
@@ -951,6 +957,12 @@ SIGSTKSZ.
 ```
 
 # Binutils
+## General
+### Reduce memory consumption
+
+- try using `-Wl,--no-keep-memory -Wl,--reduce-memory-overheads`
+- or maybe `ld -r`?
+
 ## `as`
 ` ./as-new -o m.o m.s --64`
 

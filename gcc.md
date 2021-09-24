@@ -914,6 +914,9 @@ int main() {
 }
 ```
 
+IPA-ICF can make backtraces wrong:
+[PR63572](https://gcc.gnu.org/PR63572)
+
 ## Executable stack
 On Linux GCC emits `.note.GNU-stack` sections to mark the code as not needing executable stack; if that section is missing, it's unknown and code linking in such `.o` objects can then make the program require executable stack.  Assembly files need to be marked manually -- e.g. various *.S files in libgcc:
 ```c++
@@ -924,6 +927,8 @@ On Linux GCC emits `.note.GNU-stack` sections to mark the code as not needing ex
 ```
 
 # glibc
+
+- newer glibc architectures should use *empty* crti/crtn (`sysdeps/generic/crt[in].S`) because they use init_array/fini_array exclusively.
 
 ## `SIGSTKSZ` not constant
 - may no longer be a compile-time constant

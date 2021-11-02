@@ -217,6 +217,12 @@ $78 = EQ_EXPR
 - in a constexpr function, a parameter is potentially constant when evaluating a call to that function, but it is not constant during parsing of the function; see this [patch](https://gcc.gnu.org/pipermail/gcc-patches/2020-May/546260.html)
 - `is_instantiation_of_constexpr` -- if a function is an instantiation of a constexpr function
 - `cp_function_chain->invalid_constexpr` -- set for invalid constexpr functions
+- since [this](https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=1595fe44e11a969d8ae462212886fb0a87b46226) we limit the initial instantiation of all used functions to manifestly-constant-evaluated expressions:
+```
+-  instantiate_constexpr_fns (r);
++  if (manifestly_const_eval)
++    instantiate_constexpr_fns (r);
+```
 
 ### Parser
 Life begins in `c_parse_file`:

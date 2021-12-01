@@ -542,7 +542,7 @@ though we don't do it for function templates -- bug!
 - `current_template_args` -- within the declaration of a template, return the currently active template parameters; is a vector
 - `template_parm_scope_p` -- if this scope was created to store template parameters
 - `begin_specialization`-- after seeing `template<>`
-- [DR 737](https://wg21.link/cwg737): [temp.expl.spec]: *An explicit specialization may be declared in any scope in which the corresponding primary template may be defined.*  We don't implement it yet.
+- [DR 727](https://wg21.link/cwg727): [temp.expl.spec]: *An explicit specialization may be declared in any scope in which the corresponding primary template may be defined.*  We don't implement it yet.
   - `check_specialization_namespace`, `check_explicit_instantiation_namespace`, `check_explicit_specialization`
 - class templates: member functions are instantiated only if they are used
 - if a class template has static members, they are instantiated once for each type for which the class template is used

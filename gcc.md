@@ -726,6 +726,30 @@ alias-declaration:
 - `using name = type` has `TYPE_DECL_ALIAS_P` set
 - can look at its `DECL_NAME` and `DECL_ORIGINAL_TYPE`
 
+### Mangling
+
+#### Destructors
+- `D0`, `D1`, ..., see `write_special_name_destructor`:
+
+```c++
+  if (DECL_DELETING_DESTRUCTOR_P (dtor))
+    write_string ("D0");
+  else if (DECL_BASE_DESTRUCTOR_P (dtor))
+    write_string ("D2");
+  else if (DECL_MAYBE_IN_CHARGE_DESTRUCTOR_P (dtor))
+    /* This is the old-style "[unified]" destructor.
+       In some cases, we may emit this function and call
+       it from the clones in order to share code and save space.  */
+    write_string ("D4");
+  else 
+    {    
+      gcc_assert (DECL_COMPLETE_DESTRUCTOR_P (dtor));
+      write_string ("D1");
+    }
+```
+
+- for `D4`, see e.g. [this](https://gcc.gnu.org/legacy-ml/gcc-patches/2013-11/msg02724.html)
+
 ### Other
 - `grok_op_properties` --- checks a declaration of an overloaded or conversion operator
 - `grok_ctor_properties` --- checks if a constructor has the correct form

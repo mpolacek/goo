@@ -7,7 +7,7 @@ int i;
 // (type_has_nontrivial_copy_init (t)
 //  || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t))
 // holds, this class will be passed by invisible reference.
-// See <https://itanium-cxx-abi.github.io/cxx-abi/abi.html#value-parameter>.
+// See <https://itanium-cxx-abi.github.io/cxx-abi/abi.html#non-trivial-parameters>
 
 struct A {
   A() {

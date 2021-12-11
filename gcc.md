@@ -808,6 +808,7 @@ extern "C" void __cxa_pure_virtual ();
 ## C++ library
 
 - [std::optional](https://en.cppreference.com/w/cpp/utility/optional): C++17, an optional contained valued
+  - has monadic ops in C++23: `and_then`, `transform`, `or_else`
 - [std::variant](https://en.cppreference.com/w/cpp/utility/variant): C++17, a type-safe union, can use `std::monostate` (~ empty)
 - [std::piecewise_construct](https://en.cppreference.com/w/cpp/utility/piecewise_construct): used to disambiguate between different functions that take two tuple arguments
 

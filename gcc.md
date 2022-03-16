@@ -552,6 +552,8 @@ though we don't do it for function templates -- bug!
 - [DR 226](https://wg21.link/cwg226): allowed template default arguments of function templates (C++11)
 - `decl_constant_var_p` -- if the VAR_DECL's value can be used in a constant expression.  Calls `maybe_instantiate_decl (decl)` to detect using DECL in its own initializer.
 - `check_template_shadow` -- checks if a decl shadows a template parameter
+- `build_value_init` doesn't work in templates
+- `build_vec_init` in a template builds up a lot of garbage that we'll throw away at the end (see [PR93676](https://gcc.gnu.org/PR93676))
 
 ### Bit-fields
 - `TREE_TYPE` is the magic bit-field integral type; the lowered type
@@ -725,6 +727,10 @@ alias-declaration:
 - `using`/`typedef` represented by a `TYPE_DECL`
 - `using name = type` has `TYPE_DECL_ALIAS_P` set
 - can look at its `DECL_NAME` and `DECL_ORIGINAL_TYPE`
+
+#### `TEMPLATE_DECL_COMPLEX_ALIAS_P`
+- introduced in [here](https://gcc.gnu.org/pipermail/gcc-patches/2015-June/421158.html)
+- used in `dependent_alias_template_spec_p`
 
 ### Mangling
 

@@ -1,22 +1,22 @@
-*WIP*
-
 # New C++ features in GCC 12
 
 The GNU Compiler Collection (GCC) 12.1 is expected to be released in April 2022.  Like every major GCC release, this version will bring many [additions, improvements, bug fixes, and new features](https://gcc.gnu.org/gcc-12/changes.html).  GCC 12 is already the system compiler in [Fedora 36](https://fedoraproject.org/wiki/Changes/GNUToolchainF36).  GCC 12 will also be available on [Red Hat Enterprise Linux](https://developers.redhat.com/products/rhel/overview) in the Red Hat Developer Toolset (RHEL 7), or the Red Hat GCC Toolset (RHEL 8 and 9).
 
 As the similar blog post I wrote about [GCC 10](https://developers.redhat.com/blog/2020/09/24/new-c-features-in-gcc-10), this article describes new features only in the C++ front end.
 
-We implemented several C++23 proposals in GCC 12.  The default dialect in GCC 12 is `-std=gnu++17`; to enable C++23 features, use the `-std=c++23` or `-std=gnu++23` command-line option. (Note that the latter option allows GNU extensions.) 
+We implemented several C++23 proposals in GCC 12.  The default dialect in GCC 12 is `-std=gnu++17`; to enable C++23 features, use the `-std=c++23` or `-std=gnu++23` command-line option. (The latter option allows GNU extensions.) 
+
+Note that C++20 and C++23 are still experimental in GCC 12.
 
 ## C++23 features
 
 ### `if consteval`
 
-C++17 introduced the constexpr if statement.  The condition in `constexpr if` must be a constant expression (it is *manifestly constant evaluated*).  If the condition evaluates to true, the "else" branch, if present, is discarded (which means, for instance, that the "else" branch will not be instantiated, which is a different behavior from an ordinary `if`).
+C++17 introduced the constexpr if statement.  The condition in `if constexpr` must be a constant expression (it is *manifestly constant evaluated*).  If the condition evaluates to true, the "else" branch, if present, is discarded (which means, for instance, that the "else" branch will not be instantiated, which is a different behavior from an ordinary `if`).  If the condition evaluates to false, the "then" branch is discarded.
 
-C++20 then introduced the `consteval` keyword.  A (possibly member) function or a constructor marked as `consteval` is an immediate function.  Immediate functions must produce a constant when they are called (unless the call to an immediate function takes place in another immediate function), if they don't, the compiler will produce an error.  The compiler will not emit any actual code for such functions.
+C++20 introduced the `consteval` keyword.  A (possibly member) function or a constructor marked as `consteval` is an *immediate function*.  Immediate functions must produce a constant when they are called (unless the call to an immediate function takes place in another immediate function); if they don't, the compiler will produce an error.  The compiler will not emit any actual code for such functions.
 
-In contrast, a `constexpr` function may or may not be evaluated at compile-time -- depending on the context.  To that end, C++20 introduced a new library function `std::is_constant_evaluated()`, which returns true if the current context is "evaluated at compile time":
+In contrast, a `constexpr` function may or may not be evaluated at compile-time -- depending on the context.  To that end, C++20 introduced a new library function `std::is_constant_evaluated`, which returns true if the current context is "evaluated at compile time":
 
 ```c++
 #include <type_traits>
@@ -76,7 +76,7 @@ constexpr int i = fn (10);
 
 Note that it is valid to have `if consteval` in an ordinary, non-`constexpr` function.  Also note that `if consteval` requires `{ }`, unlike the ordinary if statement.
 
-There is a problem with the interaction between `if constexpr` and `std::is_constant_evaluated()`, but fortunately the compiler can  detect that problem.  See the *Extended `std::is_constant_evaluated` in `if` warning* paragraph below.
+There is a problem with the interaction between `if constexpr` and `std::is_constant_evaluated`, but fortunately the compiler can  detect that problem.  See the *Extended `std::is_constant_evaluated` in `if` warning* paragraph below.
 
 ### `auto(x)`
 
@@ -96,7 +96,7 @@ h()
 }
 ```
 
-Note that both `auto(x)` and `auto{x}` are accepted; however, `decltype(auto)(x)` is invalid code.
+Note that both `auto(x)` and `auto{x}` are accepted; however, `decltype(auto)(x)` remains to be invalid.
 
 ### Non-literal variables in constexpr functions
 
@@ -117,7 +117,7 @@ struct nonliteral { nonliteral(); };
 static_assert(f<nonliteral>());
 ```
 
-The example above will not compile in C++20, but will compile in C++23, because the else branch is not evaluated.  Furthermore, the following example will also compile in C++23:
+The example above does not compile in C++20, but compiles in C++23, because the else branch is not evaluated.  Furthermore, the following example also only compiles in C++23:
 
 ```c++
 constexpr int
@@ -137,7 +137,7 @@ label:
 
 GCC 12 supports C++23 [P2128R6](https://wg21.link/p2128) -- multidimensional subscript operator.  A comma expression within a subscripting expression was deprecated in C++20 via [P1161R3](https://wg21.link/p1161), and in C++23 the comma in `[ ]` has changed meaning.
 
-C++ uses the `operator[]` member function to access the elements of an array, or an array-like types such as `std::array`, `std::span`, `std::vector`, or `std::string`.  However, this operator did not accept multiple arguments, so accessing the elements of multidimensional arrays was implemented using workarounds such as function call operators `arr(x, y, z)` and similar.  These workarounds have a number of drawbacks, so to alleviate the issues when using these workarounds, C++23 allows that `operator[]` takes zero or more arguments.
+C++ uses the `operator[]` member function to access the elements of an array, or array-like types such as `std::array`, `std::span`, `std::vector`, or `std::string`.  However, this operator did not accept multiple arguments in C++20, so accessing the elements of multidimensional arrays was implemented using workarounds such as function call operators `arr(x, y, z)` and similar.  These workarounds have a number of drawbacks, so to alleviate the issues when using these workarounds, C++23 allows that `operator[]` takes zero or more arguments.
 As a consequence, this test case is accepted with `-std=c++23`:
 
 ```c++
@@ -211,12 +211,51 @@ GCC 12 implements C++23 [P2360R0](https://wg21.link/p2360r0), which merely exten
 
 ```c++
 for (using T = int; T e : v)
-  // use e
+  {
+    // use e
+  }
 ```
 
 ## Other changes
 
-### auto specifier for pointers and references to arrays
+### Dependent operator lookup changes
+
+GCC 12 corrected unqualified lookup for a dependent operator expression at template definition time instead of at instantiation time, as was already the case for dependent call expressions.  Consider the following test case demonstrating this change:
+
+```c++     
+#include <iostream>
+         
+namespace N {
+  struct A { };
+}
+         
+void operator+(N::A, double) {
+  std::cout << "#1 ";
+}
+         
+template<class T>
+void f(T t) {
+  operator+(t, 0);
+  t + 0;
+}
+         
+// Since it's not visible from the template definition, this later-declared
+// operator overload should not be considered when instantiating f<N::A>(N::A),
+// for either the call or operator expression.
+void operator+(N::A, int) {
+  std::cout << "#2 ";
+}
+         
+int main() {
+  N::A a;
+  f(a);
+  std::cout << std::endl;
+}
+```
+
+This program will print `#1 #2` when compiled with GCC 11 or older, but GCC 12 correctly prints `#1 #1`.  That is, previously only the call expression resolved to the `#1` overload, but with GCC 12 the operator expression does too.
+
+### `auto` specifier for pointers and references to arrays
 
 GCC 12 also supports [DR2397](https://wg21.link/cwg2397), `auto` specifier for pointers and references to arrays.  This change removes the restriction that the array element type may not be a *placeholder type*.  This allows code like
     
@@ -242,9 +281,9 @@ auto x[5] = arr;
 
 given that `auto` deduction is performed in terms of function template argument deduction, so the array decays to a pointer.
 
-### `std::move`/`std::forward` folding
+### Folding of trivial functions
 
-A well-formed call to `std::move`/`std::forward` is equivalent to a cast, but the former being a function call means the compiler generates debug info, which persists even after the call gets inlined, for an operation that's never interesting to debug.  Therefore, GCC 12 elides calls to `std::move`/`std::forward` and other cast-like functions into simple casts as part of the front end's general expression folding routine.  As a result, the debug info produced by GCC may now be up to 10% smaller while improving GCC's compile time and memory usage.  This new behavior is controlled by a new flag called `-ffold-simple-inlines`.
+A well-formed call to `std::move`/`std::forward` is equivalent to a cast, but the former being a function call means the compiler generates debug info, which persists even after the call gets inlined, for an operation that's never interesting to debug.  Therefore, GCC 12 elides calls to certain trivial inline functions such as `std::move`, `std::forward`, `std::addressof`, and `std::as_const` into simple casts as part of the front end's general expression folding routine.  As a result, the debug info produced by GCC may now be up to 10% smaller while improving GCC's compile time and memory usage.  This new behavior is controlled by a new flag called `-ffold-simple-inlines`.
 
 ### DR2374, Overly permissive specification of `enum` direct-list-initialization
 
@@ -287,7 +326,7 @@ template <class T> long h(...);
 long z = h<void>(0, 0); // error in GCC 12, OK in GCC 11
 ```
 
-GCC 12 substitutes the arguments in left-to-right order, and checks if a substituted type is erroneous before substituting into the rest of the arguments.  Thus, for `g<void>(0, 0)` the compiler tries to substitute `void` into `g(T, typename A<T>::type)` and sees that the first substitution results in an invalid parameter type `void`, which is a SFINAE failure, so the first overload is discarded and the `g(...)` one is chosen instead.  However, for `h<void>(0, 0)` we first substitute `void` into the `typename A<T>::type` parameter.  This will produce a hard error, since instantiating `A<void>` is not an immediate context.
+GCC 12 substitutes the arguments in left-to-right order, and checks if a substituted type is erroneous before substituting into the rest of the arguments.  Thus, for `g<void>(0, 0)` the compiler tries to substitute `void` into `g(T, typename A<T>::type)` and sees that the first substitution results in an invalid parameter type `void`, which is a SFINAE failure, so the first overload is discarded and the `g(...)` one is chosen instead.  However, for `h<void>(0, 0)` the compiler first substitutes `void` into the `typename A<T>::type` parameter.  This will produce a hard error, since instantiating `A<void>` is not an immediate context.
 
 GCC 11 and earlier performed the substitution in right-to-left order, so the situation was reversed: `g<void>(0, 0)` resulted in a compile error whereas `h<void>(0, 0)` compiled fine.
 
@@ -359,7 +398,7 @@ struct B {
 };
 ```
 
-As an aside, the request to enhance the warning came about 17 years ago.  Apparently sometimes things take their time.
+As an aside, the request to enhance the warning came about 17 years ago.  Apparently, sometimes things take their time.
 
 ### `-Wbidi-chars` added
 
@@ -375,9 +414,9 @@ int arr2[5];
 bool same = arr1 == arr2; // warning: comparison between two arrays
 ```
 
-### `-Wno-attributes=ns::attr`
+### `-Wattributes` extended
 
-The `-Wattributes` warning has been extended and the users can now use `-Wno-attributes=ns::attr` or `-Wno-attributes=ns::` to suppress warnings about unknown scoped attributes (in C++11 and C2X). Similarly, `#pragma GCC diagnostic ignored_attributes "vendor::attr"` can be used to achieve the same effect.  The new functionality is meant to help with vendor-specific attributes, where a warning is not desirable, while still detecting typos.  Consider:
+The `-Wattributes` warning has been extended and users can now use `-Wno-attributes=ns::attr` or `-Wno-attributes=ns::` to suppress warnings about unknown scoped attributes (in C++11 and C2X). Similarly, `#pragma GCC diagnostic ignored_attributes "ns::attr"` can be used to achieve the same effect.  The new functionality is meant to help with vendor-specific attributes, where a warning is not desirable, while still detecting typos.  Consider:
 
 ```c++
 [[deprecate]] void g(); // warning: should be deprecated
@@ -414,11 +453,24 @@ baz ()
 }
 ```
 
-### Missing `requires` warning
+### `-Wmissing-requires` added
 
-XXX e18e56c76be35e6a799e07a01c24e0fff3eb1978
+The `-Wmissing-requires` warning warns about a missing `requires`.  Consider
+
+```c++
+template <typename T> concept Foo = __is_same(T, int);
+
+template<typename Seq>
+concept Sequence = requires (Seq s) {
+  /* requires */ Foo<Seq>;
+};
+```
+
+where the user presumably meant to invoke the `Foo` concept (nested requirement), which needs to be prefixed by the keyword `requires`.  In this test, `Foo<Seq>` is a *concept-id* which will make `Sequence` true if `Foo<Seq>` is a valid expression, which it is for all `Seq`.
 
 ### `-Waddress` enhanced
+
+The `-Waddress` warning has been extended.  It now warns about, for instance, comparing the address of a nonstatic member function to the null pointer value:
 
 ```c++
 struct S {
@@ -433,5 +485,10 @@ int g()
 }
 ```
 
+## Acknowledgments
+
+As usual, I'd like to thank my coworkers at Red Hat who made the GNU C++ compiler so much better, notably Jason Merrill, Jakub Jelinek, Patrick Palka, and Jonathan Wakely.
+
 ## Conclusion
-In GCC 13, we plan to finish up the remaining C++23 features. For progress so far, see the [C++23 Language Features](https://gcc.gnu.org/projects/cxx-status.html#cxx23) table on the [C++ Standards Support in GCC](https://gcc.gnu.org/projects/cxx-status.html) page.  Please do not hesitate to [file bugs](https://gcc.gnu.org/bugs/) in the meantime, and help us make GCC even better! 
+In GCC 13, we plan to finish up the remaining C++23 features. For progress so far, see the [C++23 Language Features](https://gcc.gnu.org/projects/cxx-status.html#cxx23) table on the [C++ Standards Support in GCC](https://gcc.gnu.org/projects/cxx-status.html) page.  Please do not hesitate to [file bugs](https://gcc.gnu.org/bugs/) in the meantime, and help us make GCC even better!
+

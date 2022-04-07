@@ -904,6 +904,7 @@ nope:
 - libgcc unwinder has a global lock: `_Unwind_Find_FDE` has `object_mutex`
 - `cp/g++spec.c` -- `lang_specific_driver`, adds `-lstdc++` using `generate_option`
 - multi-target toolchain [email](https://gcc.gnu.org/legacy-ml/gcc-patches/2010-06/msg02675.html)
+- dump clas info: `-fdump-lang-class`
 
 ## Built-ins
 

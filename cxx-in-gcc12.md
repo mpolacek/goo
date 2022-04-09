@@ -406,6 +406,8 @@ As an aside, the request to enhance the warning came about 17 years ago.  Appare
 
 The `-Wbidi-chars` warning warns about potentially misleading UTF-8 bidirectional control characters, which can change left-to-right writing direction into right-to-left (and vice versa).  As a consequence, the BiDi characters might cause confusion for the programmer because seemingly commented-out code might actually be used, or vice versa.  This warning is supposed to mitigate [CVE-2021-42574](https://nvd.nist.gov/vuln/detail/CVE-2021-42574) aka [Trojan Source](https://trojansource.codes/).
 
+For more information, please refer to a [blog post](https://developers.redhat.com/articles/2022/01/12/prevent-trojan-source-attacks-gcc-12) by David Malcolm.
+
 ### `-Warray-compare` added
 
 The new `-Warray-compare` warning warns about comparisons between two operands of array type, which was deprecated in C++20.  For example:

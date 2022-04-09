@@ -2,7 +2,7 @@
 
 The GNU Compiler Collection (GCC) 12.1 is expected to be released in April 2022.  Like every major GCC release, this version will bring many [additions, improvements, bug fixes, and new features](https://gcc.gnu.org/gcc-12/changes.html).  GCC 12 is already the system compiler in [Fedora 36](https://fedoraproject.org/wiki/Changes/GNUToolchainF36).  GCC 12 will also be available on [Red Hat Enterprise Linux](https://developers.redhat.com/products/rhel/overview) in the Red Hat Developer Toolset (RHEL 7), or the Red Hat GCC Toolset (RHEL 8 and 9).
 
-As the similar blog post I wrote about [GCC 10](https://developers.redhat.com/blog/2020/09/24/new-c-features-in-gcc-10), this article describes new features only in the C++ front end.
+As the similar blog post I wrote about [GCC 10](https://developers.redhat.com/blog/2020/09/24/new-c-features-in-gcc-10), this article only describes new features in the C++ front end.
 
 We implemented several C++23 proposals in GCC 12.  The default dialect in GCC 12 is `-std=gnu++17`; to enable C++23 features, use the `-std=c++23` or `-std=gnu++23` command-line option. (The latter option allows GNU extensions.) 
 
@@ -80,7 +80,7 @@ There is a problem with the interaction between `if constexpr` and `std::is_cons
 
 ### `auto(x)`
 
-GCC 12 implements proposal [P0849](https://wg21.link/p0849), which allows `auto` in a *function-style cast*, the result of which is a *prvalue*:
+GCC 12 implements proposal [P0849](https://wg21.link/p0849), which allows `auto` in a *function-style cast*, the result of which is a [*prvalue*](https://en.cppreference.com/w/cpp/language/value_category):
 
 ```c++
 struct A {};
@@ -96,7 +96,7 @@ h()
 }
 ```
 
-Note that both `auto(x)` and `auto{x}` are accepted; however, `decltype(auto)(x)` remains to be invalid.
+Note that both `auto(x)` and `auto{x}` are accepted; however, `decltype(auto)(x)` remains invalid.
 
 ### Non-literal variables in constexpr functions
 
@@ -182,7 +182,7 @@ void f(int a[], int b, int c)
  }
 ```
 
-Note that currently `operator[]` does not support default arguments.  It appears, though, that default arguments will be allowed: see [CWG 2507](https://wg21.link/cwg2507).  When/if the proposed adjustment is accepted, the following example will be allowed:
+Note that currently `operator[]` does not support default arguments.  It appears, though, that default arguments will be allowed: see [CWG 2507](https://wg21.link/cwg2507).  If/when the proposed adjustment is accepted, the following example will be allowed:
 
 ```c++
 struct X {
@@ -204,6 +204,8 @@ In C and C++, the `#ifdef` and `#ifndef` preprocessing directives are "syntactic
 /* ... */
 #endif
 ```
+
+Please note that the code example above will compile without errors in C++20 and earlier only when GNU extensions are enabled.  That is, `-std=c++20` will cause a compile error, but `-std=gnu++20` will cause only a pedantic warning if `-Wpedantic` was turned on.
 
 ### Extended *init-statement*
 
@@ -307,7 +309,7 @@ template <int I, int J> struct A {};
 template <int I> struct A<I, I*2> {}; // OK with GCC 12
 ```
 
-### DR 1227, Substitute into function parms in lexical order
+### DR 1227, Substitute into function parameters in lexical order
 
 C++ template argument deduction underwent some changes to clarify that the substitution proceeds in lexical order, that is, in left-to-right order.  The following code demonstrates what effect this might have:
 
@@ -332,7 +334,7 @@ GCC 11 and earlier performed the substitution in right-to-left order, so the sit
 
 ### Stricter checking of attributes on friend declarations
 
-If a friend declaration has an attribute, that declaration must be a definition.
+If a friend declaration has an attribute, that declaration must be a definition, but before GCC 12 this wasn't checked.
 Moreover, a C++11 attribute cannot appear in the middle of the *decl-specifier-seq*:
 
 ```c++
@@ -375,7 +377,7 @@ Note: You can find the overall defect resolution status on the [C++ Defect Repor
 
 ### `-Wuninitialized` extended
 
-The `-Wuninitialized` warning has been extended to warn about using uninitialized variables in member initializer lists.  Therefore the front end can detect bugs like
+The `-Wuninitialized` warning has been extended to warn about using uninitialized variables in member initializer lists.  Therefore the front end can detect bugs like:
 
 ```c++
 struct A {

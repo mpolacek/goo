@@ -649,6 +649,51 @@ template<typename T> void h() { g(2)->f<3>(); }
 - `VEC_INIT_EXPR` is handled in `cp_gimplify_expr` since [r152318](https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=d5f4edddeb609ad93c7a69ad4575b082de8dc707) -- it uses `build_vec_init` to expand it
 - doesn't track whether the initialization was direct-init? [PR82235](https://gcc.gnu.org/PR82235)
 
+### `PLACEHOLDER_EXPR`
+- used when we don't have a `this` parameter to refer to yet
+- consider:
+
+```c++
+struct S {
+  int a;
+  void *p = this; // #1
+};
+
+void g()
+{
+  S a{1}; // #2
+}
+```
+
+- `get_nsdmi` creates a `PLACEHOLDER_EXPR` for `S::p`'s NSDMI (`#1`), so its initializer is `(void *) &<PLACEHOLDER_EXPR struct S>`.
+- after we've created a `VAR_DECL` for `a`, `store_init_value` -> `replace_placeholders` gets `exp={.a=1, .p=(void *) &<PLACEHOLDER_EXPR struct S>}, obj=a`, replaces the PLACEHOLDER_EXPR, as the name suggests, and returns `{.a=1, .p=(void *) &a}`
+
+### `CONSTRUCTOR_PLACEHOLDER_BOUNDARY`
+- used so that `replace_placeholders_r` doesn't walk into constructors that have `PLACEHOLDER_EXPR`s related to another object.  E.g.,
+
+```c++
+struct C {};
+struct X {
+  unsigned i;
+  unsigned n = i;
+};
+
+C bar (X x)
+{
+  return {};
+}
+
+int main ()
+{
+  C c = bar (X {1});
+}
+```
+
+- the init for `n` is  initially `((struct X *) this)->i`, but we don't have the object yet, so we create a `PLACEHOLDER_EXPR` and the init is then `(&<PLACEHOLDER_EXPR struct X>)->i` (cf. `get_nsdmi`)
+-  `CONSTRUCTOR_PLACEHOLDER_BOUNDARY` is set on `{NON_LVALUE_EXPR <1>}`: `process_init_constructor_record` is processing the initializer `{NON_LVALUE_EXPR <1>}` for `X`, it walks all members of `X` and it sees that the NSDMI for `n` (which is `(&<PLACEHOLDER_EXPR struct X>)->i`) has a `PLACEHOLDER_EXPR`
+-  `{NON_LVALUE_EXPR <1>}` is turned into `{.i=1, .n=(&<PLACEHOLDER_EXPR struct X>)->i}` in `process_init_constructor_record`
+- then `replace_placeholders_r` will not walk into the constructor when it's called from `store_init_value` with `exp=bar (TARGET_EXPR <D.2396, {.i=1, .n=(&<PLACEHOLDER_EXPR struct X>)->i}>), obj=c`.  If it did, we'd crash, because we'd attempt to substitute a `PLACEHOLDER_EXPR` of type `X` with an object of type `C`.
+
 ### `[with ...]`
 - printed by `pp_cxx_parameter_mapping` or `dump_substitution`
 - see also `pp_cxx_template_argument_list`

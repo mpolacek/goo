@@ -692,7 +692,16 @@ int main ()
 - the init for `n` is  initially `((struct X *) this)->i`, but we don't have the object yet, so we create a `PLACEHOLDER_EXPR` and the init is then `(&<PLACEHOLDER_EXPR struct X>)->i` (cf. `get_nsdmi`)
 -  `CONSTRUCTOR_PLACEHOLDER_BOUNDARY` is set on `{NON_LVALUE_EXPR <1>}`: `process_init_constructor_record` is processing the initializer `{NON_LVALUE_EXPR <1>}` for `X`, it walks all members of `X` and it sees that the NSDMI for `n` (which is `(&<PLACEHOLDER_EXPR struct X>)->i`) has a `PLACEHOLDER_EXPR`
 -  `{NON_LVALUE_EXPR <1>}` is turned into `{.i=1, .n=(&<PLACEHOLDER_EXPR struct X>)->i}` in `process_init_constructor_record`
-- then `replace_placeholders_r` will not walk into the constructor when it's called from `store_init_value` with `exp=bar (TARGET_EXPR <D.2396, {.i=1, .n=(&<PLACEHOLDER_EXPR struct X>)->i}>), obj=c`.  If it did, we'd crash, because we'd attempt to substitute a `PLACEHOLDER_EXPR` of type `X` with an object of type `C`.
+- then `replace_placeholders_r` will not walk into the constructor when it's called from `store_init_value` with `exp=bar (TARGET_EXPR <D.2396, {.i=1, .n=(&<PLACEHOLDER_EXPR struct X>)->i}>), obj=c`.  If it did, we'd crash, because we'd attempt to substitute a `PLACEHOLDER_EXPR` of type `X` with an object of type `C`.  (Note that here `*t != d->exp`, see below.  `d->exp` is the whole `bar(...)` call, `*t` only the constructor sub-expression.)
+- the `PLACEHOLDER_EXPR X` is replaced with `D.2432` in `cp_gimplify_init_expr` which gets `D.2432 = {.i=1, .n=(&<PLACEHOLDER_EXPR struct X>)->i}`.  The `CONSTRUCTOR_PLACEHOLDER_BOUNDARY` is still set, but this time in:
+
+```c++
+        if ((CONSTRUCTOR_PLACEHOLDER_BOUNDARY (*t) 
+             && *t != d->exp)
+            || d->pset->add (*t))
+```
+
+`*t` actually is `d->exp` (= the outermost expression).
 
 ### `[with ...]`
 - printed by `pp_cxx_parameter_mapping` or `dump_substitution`

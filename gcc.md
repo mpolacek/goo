@@ -923,6 +923,10 @@ while ((count = read (file->fd, buf + total, size - total)) > 0)
 - see [this](https://gcc.gnu.org/wiki/LinkTimeOptimizationFAQ#Symbol_usage_from_assembly_language)
 - or [PR57703](https://gcc.gnu.org/PR57703)
 
+### ASan
+
+- should not be used in production: see [this](https://www.openwall.com/lists/oss-security/2016/02/17/9)
+
 ### Plugins
 
 - plugins location: use `--print-file-name=plugin` but that only works with the installed compiler: `make install` creates the plugin directory, it's not in the build directory.  Can use `-B` to point to it though.

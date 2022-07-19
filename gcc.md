@@ -872,6 +872,12 @@ extern "C" void __cxa_pure_virtual ();
 - [std::variant](https://en.cppreference.com/w/cpp/utility/variant): C++17, a type-safe union, can use `std::monostate` (~ empty)
 - [std::piecewise_construct](https://en.cppreference.com/w/cpp/utility/piecewise_construct): used to disambiguate between different functions that take two tuple arguments
 
+### Updating docs in libstdc++
+- updating e.g. `doc/html/manual/status.html` means updating `doc/xml/manual/status_cxx2023.xml` and then regenerating the former file
+- you need the following packages: `libxml2`, `libxslt`, `dblatex`, `docbook5-style-xsl`, `docbook5-schemas`, `docbook2X`
+- and then do `make doc-html-docbook-regenerate` in the libstdc++ build dir, that will generate the html files and copy them back into the source tree
+- see [this](https://gcc.gnu.org/onlinedocs/libstdc++/manual/documentation_hacking.html#docbook.rules)
+
 ## GCC general
 ### Reading source files
 - after processing the command-line options, we call `cpp_read_main_file` -> `_cpp_find_file` -> `find_file_in_dir` -> `open_file` which does:

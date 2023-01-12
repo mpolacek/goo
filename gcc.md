@@ -422,6 +422,7 @@ template <class T> class C<T*>;
 - 1 or 3: `CLASSTYPE_TEMPLATE_INSTANTIATION`
 - in debug output: `use_template=[01]`
 - `lookup_template_class` sets `CLASSTYPE_IMPLICIT_INSTANTIATION` for a partial instantiation (i.e., for the type of a member template class nested within a template class); required for `maybe_process_partial_specialization` to work correctly.
+- to get template arguments from a `RECORD_TYPE`, e.g. `std::pair<const int&, const int&>`: use `CLASSTYPE_TI_ARGS`.  The template parameters of `std::pair`, that is `template<typename _T1, typename _T2>` can be obtained by using `DECL_TEMPLATE_PARMS`.
 
 #### `PRIMARY_TEMPLATE_P`
 - a variable in a function template will get a `TEMPLATE_DECL` (created by `start_decl` -> `push_template_decl` -> `build_template_decl`), its `DECL_TEMPLATE_RESULT` will be a `VAR_DECL`, so `variable_template_p` checks for `PRIMARY_TEMPLATE_P`:

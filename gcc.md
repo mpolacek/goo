@@ -884,6 +884,10 @@ extern "C" void __cxa_pure_virtual ();
 
 ## GCC general
 
+### Debugging memory-related problems
+
+- always collect: `--param ggc-min-expand=0 --param ggc-min-heapsize=0`
+
 ### Things to remember
 
 - It's customary to build up the list and then `nreverse` it rather than use 

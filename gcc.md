@@ -223,6 +223,7 @@ $78 = EQ_EXPR
 +  if (manifestly_const_eval)
 +    instantiate_constexpr_fns (r);
 ```
+- `DECL_IMMEDIATE_FUNCTION_P` in gdb: `p foo.function_decl.common.common.common.common.lang_specific.u.fn.immediate_fn_p`
 
 ### Parser
 Life begins in `c_parse_file`:

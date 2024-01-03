@@ -216,6 +216,42 @@ merge (node *l1, node *l2)
   return add_end (l1, l2);
 }
 
+/* Reverse list L.  Iterative.  */
+
+static node *
+reverse_it (node *l)
+{
+  node *prev = nullptr;
+  for (node *p = l; p;)
+    {
+      node *next = p->next;
+      p->next = prev;
+      prev = p;
+      p = next;
+    }
+  return prev;
+}
+
+/* Worker for reverse.  */
+
+static node *
+reverse_rec (node *l, node *prev)
+{
+  if (!l)
+    return prev;
+  node *r = reverse_rec (l->next, l);
+  l->next = prev;
+  return r;
+}
+
+/* Reverse list L.  Recursive.  */
+
+static node *
+reverse (node *l)
+{
+  return reverse_rec (l, /*prev=*/nullptr);
+}
+
 int
 main (void)
 {
@@ -272,6 +308,34 @@ main (void)
   print_list (l3);
   l = merge (l, l2);
   print_list (l);
+  free_all (l);
+  l = nullptr;
+
+  puts ("reverse");
+  l = add_front (l, new_item (1));
+  print_list (l);
+  l = reverse_it (l);
+  print_list (l);
+  l = reverse (l);
+  print_list (l);
+  l = add_end (l, new_item (2));
+  l = add_end (l, new_item (3));
+  l = add_end (l, new_item (4));
+  l = add_end (l, new_item (5));
+  /* NB: We can't lose the pointer to the head, so can't do
+     print_list (reverse_it (l)).  */
+  print_list (l);
+  l = reverse_it (l);
+  print_list (l);
+  l = reverse_it (l);
+  print_list (l);
+  l = reverse (l);
+  print_list (l);
+  l = reverse (l);
+  print_list (l);
+
+  reverse (nullptr);
+  reverse_it (nullptr);
 
   free_all (l);
   l = nullptr;

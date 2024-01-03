@@ -97,6 +97,7 @@ There are various parameters to specify the behavior: if we want to imply an lva
 - a constexpr expansion context, just one per evaluate-outermost-constant-expression
 - most importantly, contains a hash map of temporaries or local variables within the constant expression: `hash_map<tree,tree> values;`
 - created only in `cxx_eval_outermost_constant_expr`, once per each call
+- now a class; has `hash_set<tree> *modifiable;` for `[[assume]]`
 
 ##### `constexpr_ctx`
 - the constexpr expansion context, we can have more of them per one "main" constexpr expansion context
@@ -289,6 +290,7 @@ And [class.mem]p8: *The class is regarded as complete within its complete-class 
 - `RETURN_EXPR`: calls `finish_return_stmt` after recursing on its operands
 - `EXPR_STMT`, `USING_STMT`, `DECL_EXPR`, `BIND_EXPR`, ...
 - calls `finish_*`
+- is now `tsubst_stmt`; see r14-4797
 
 #### `tsubst_copy_and_build`
 - deals with expressions and performs semantic analysis
@@ -304,6 +306,10 @@ And [class.mem]p8: *The class is regarded as complete within its complete-class 
 - `COND_EXPR`
 - handles a `CONSTRUCTOR` which `tsubst` doesn't
 - no `tsubst*` function handles `AGGR_INIT_EXPR`
+- is now `tsubst_expr`; see r14-4797
+
+#### `tsubst_decl`
+- has a `use_spec_table` parm -- look up/insert into the specialization table: `spec_hasher::hash`, `retrieve_specialization`
 
 #### non-deduced contexts
 - see *[temp.deduct.type]*, e.g., *the expression of a decltype-specifier*
@@ -621,10 +627,13 @@ if (CHECKING_P && cxx_dialect >= cxx17)
 - `MODIFY_EXPR` with a `TARGET_EXPR` as the RHS = copy
 - for classes but also when converting an integer to a reference type: `convert_like_internal/ck_ref_bind`
 - can express direct-init: `TARGET_EXPR_DIRECT_INIT`
-- `TARGET_EXPR_DIRECT_INIT_P` means there 
+- `TARGET_EXPR_DIRECT_INIT_P` means there tsubst
 isn't a temporary involved (-> checking in `cp_gimplify_expr` that we don't see any `TARGET_EXPR` with that 
 flag set (because they all get folded away by `cp_gimplify_init_expr`)
 - should never get into `fold_non_dependent_expr`
+- when the gimplifier encounters the same `TARGET_EXPR` twice, it evaluates `TARGET_EXPR_INITIAL` the first time and clears it so that the later evaluation is just the temporary; see `gimplify_target_expr`
+- a `TARGET_EXPR` within a `TARGET_EXPR` should be collapsed in `cp_fold_r`
+- `TARGET_EXPR_ELIDING_P` set if the `TARGET_EXPR` is an initializer, not a temporary. See `set_target_expr_eliding`.  `cp_gimplify_init_expr` check that a `TARGET_EXPR_INITIAL` comes from a `TARGET_EXPR_ELIDING_P`.  Done in r13-3175.
 
 ### `NON_DEPENDENT_EXPR`
 - introduced 2003-07-08, gcc-3.4.0, [r69130](https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=d17811fd1aad24d0f47d0b20679753b23803848b)
@@ -767,6 +776,12 @@ struct
    %V   cv-qualifier.
    %X   exception-specification.
 ```
+
+### `FUNCTION_POINTER_TYPE_P`
+- should be used on a pointer type, not a `CALL_EXPR`
+
+### `STRIP_REFERENCE_REF`
+- use to look through the implicit `INDIRECT_REF`
 
 ### Alias
 1. *type alias*

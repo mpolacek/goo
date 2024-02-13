@@ -1001,6 +1001,9 @@ nope:
 - `cp/g++spec.c` -- `lang_specific_driver`, adds `-lstdc++` using `generate_option`
 - multi-target toolchain [email](https://gcc.gnu.org/legacy-ml/gcc-patches/2010-06/msg02675.html)
 - dump clas info: `-fdump-lang-class`
+- clang/gcc interop problems:
+  *  [12579](https://github.com/llvm/llvm-project/issues/12579)
+  *  [43573](https://github.com/llvm/llvm-project/issues/43573)
 
 ## Built-ins
 

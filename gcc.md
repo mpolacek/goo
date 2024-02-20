@@ -1004,6 +1004,7 @@ nope:
 - clang/gcc interop problems:
   *  [12579](https://github.com/llvm/llvm-project/issues/12579)
   *  [43573](https://github.com/llvm/llvm-project/issues/43573)
+  *  [82151](https://github.com/llvm/llvm-project/issues/82151)
 
 ## Built-ins
 

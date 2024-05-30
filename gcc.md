@@ -1047,6 +1047,19 @@ ARM: `--target=arm-none-eabi`
 
 PPC64LE: `--target=powerpc64le-unknown-linux-gnu`
 
+## Koji hack
+
+- a hook to dump the preprocessed source on a crash (as `/tmp/cc*out`),
+  and then use something like:
+```
+BuildRequires: sharutils
+```
+and then:
+```
+make || : ( tar cf - /tmp/cc*.out | bzip2 -9 | uuencode cc.tar.bz2 )
+```
+which stashes a uuencoded form of the tarball into the Koji build log
+
 ## Debuginfo
 GCC 11 emits debuginfo for external functions too (*early debug* because of LTO).  This was introduced in [PR96383](https://gcc.gnu.org/PR96383), which had unresolved issues: [PR97060](https://gcc.gnu.org/PR97060) (fixed now).
 E.g.:

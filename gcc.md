@@ -1056,7 +1056,7 @@ BuildRequires: sharutils
 ```
 and then:
 ```
-make || : ( tar cf - /tmp/cc*.out | bzip2 -9 | uuencode cc.tar.bz2 )
+make || ( tar cf - /tmp/cc*.out | bzip2 -9 | uuencode cc.tar.bz2 )
 ```
 which stashes a uuencoded form of the tarball into the Koji build log
 
